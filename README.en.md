@@ -8,7 +8,7 @@
   <img src="logo.png" alt="FOCUST Logo" width="96" height="96">
 </p>
 
-FOCUST is a time series colony system for foodborne pathogen workflows. It covers proposal generation, colony versus artifact separation, multi class identification, and a reproducible engineering pipeline from dataset construction to training, inference, evaluation, and reporting. The system treats temporal growth as the primary signal and uses a forty frame image sequence as the default sample unit. GUI and CLI share the same configuration and the same outputs.
+FOCUST targets foodborne pathogen plate imaging and provides a time series colony system for detection, filtering, and multi class identification. It covers the full engineering pipeline from dataset construction to training, inference, evaluation, and reporting. The system treats temporal growth as the primary signal, uses a forty frame sequence as the standard sample unit, and applies a hybrid architecture that combines traditional vision proposals with deep learning classifiers. Two engines are supported, including the classic HCP pipeline and the HCP encoding plus YOLO pipeline. GUI and CLI share the same configuration and output format for offline and intranet deployments.
 
 This repository is designed for offline delivery. It does not download weights automatically. Models and configuration are intended to run reliably in intranet and offline environments.
 
@@ -33,7 +33,7 @@ This repository is designed for offline delivery. It does not download weights a
 
 ## Overview
 
-In practical imaging scenarios, plate textures, food debris, bubbles, reflections, and scratches can make single frame detection unreliable. Temporal change and growth are used as the primary cues, combining an interpretable proposal stage with trainable classification modules and packaging the full workflow into a reproducible system.
+In practical imaging scenarios, plate textures, food debris, bubbles, reflections, and scratches can make single frame detection unreliable. Temporal change and growth are used as the primary cues to form an interpretable proposal stage and trainable classification modules within a reproducible workflow.
 
 FOCUST targets:
 
