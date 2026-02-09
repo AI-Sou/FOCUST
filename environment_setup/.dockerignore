@@ -1,0 +1,130 @@
+# Focust Docker构建忽略文件
+# 用于优化Docker构建过程，减少镜像大小和构建时间
+
+# ==================== Git和版本控制 ====================
+.git
+.gitignore
+.gitattributes
+.gitkeep
+
+# ==================== Python缓存和编译文件 ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==================== 虚拟环境 ====================
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+conda-meta/
+
+# ==================== IDE和编辑器 ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==================== 日志和临时文件 ====================
+*.log
+logs/
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# ==================== 测试和覆盖率 ====================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.cache
+nosetests.xml
+
+# ==================== 数据和模型文件 ====================
+data/
+datasets/
+models/
+weights/
+checkpoints/
+*.h5
+*.pkl
+*.pt
+*.pth
+*.onnx
+*.pb
+
+# ==================== 输出和结果 ====================
+output/
+results/
+experiments/
+runs/
+tensorboard_logs/
+
+# ==================== 文档 ====================
+docs/_build/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# ==================== 特定于Focust的文件 ====================
+# 用户配置
+user_config.yaml
+user_settings.json
+
+# 历史和缓存
+.focust_history
+.focust_cache/
+
+# ==================== 系统文件 ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==================== Docker相关 ====================
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# ==================== CI/CD ====================
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+
+# ==================== 包管理器文件（在Dockerfile中单独复制） ====================
+# environment_setup/ 目录中的文件会被选择性复制
+# requirements_pip.txt 和 environment.yml 在构建阶段需要
