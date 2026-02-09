@@ -1,0 +1,194 @@
+{
+    "comment": "FOCUST 食源性致病菌时序自动化训练检测系统 CLI 模式配置文件 - 完整模板",
+    "mode": "batch",
+    "comment_mode": "运行模式: single处理单个文件夹, batch评估整个数据集",
+    "input_path": "./dataset",
+    "comment_input_path": "输入路径（请修改为你的数据集根目录）",
+    "output_path": "./output",
+    "comment_output_path": "输出路径",
+    "language": "zh_CN",
+    "comment_language": "界面语言: zh_CN或en",
+    "engine": "hcp",
+    "comment_engine": "推理引擎: hcp（FOCUST222: HCP+二分类+多分类）或 hcp_yolo（FOCUST111: HCP编码+YOLO多分类，可选多分类细化）",
+    "models": {
+        "binary_classifier": "./model/erfen.pth",
+        "multiclass_classifier": "./model/mutilfen93.pth",
+        "yolo_model": "./model/yolo11n.pt",
+        "comment_yolo_model": "HCP-YOLO 本地权重(.pt)。当 engine=hcp_yolo 时必填；默认离线不自动下载。",
+        "yolo_models": {
+            "yolo11n": "./model/yolo11n.pt",
+            "yolo11s": "./model/yolo11s.pt",
+            "yolo11m": "./model/yolo11m.pt",
+            "yolo11l": "./model/yolo11l.pt",
+            "yolo11x": "./model/yolo11x.pt"
+        },
+        "comment_yolo_models": "（可选）多YOLO权重对比/消融：tools/run_multi_yolo_eval.sh 会遍历此字典并分别输出到 multi_yolo.output_root/<key>/",
+        "comment_multiclass_map": "模型输出索引到类别ID的映射表",
+        "multiclass_index_to_category_id_map": {
+            "0": 1,
+            "1": 2,
+            "2": 3,
+            "3": 4,
+            "4": 5
+        }
+    },
+    "pipeline": {
+        "use_binary_filter": true,
+        "use_multiclass": true,
+        "fallback_class_id": 1,
+        "comment": "HCP(engine=hcp)流水线开关：二分类过滤、多分类识别、以及当多分类关闭时的回退类别ID"
+    },
+    "inference": {
+        "use_multiclass_refinement": true,
+        "conf_threshold": 0.25,
+        "nms_iou": 0.45,
+        "use_sahi": true,
+        "slice_size": 640,
+        "overlap_ratio": 0.2,
+        "comment": "HCP-YOLO(engine=hcp_yolo)推理参数：阈值/SAHI切片/是否用 mutil_train 做细化"
+    },
+    "multi_yolo": {
+        "output_root": "./output/multi_yolo",
+        "comment": "（可选）多YOLO权重对比输出根目录（tools/run_multi_yolo_eval.sh）"
+    },
+    "device": "auto",
+    "compatibility_mode": true,
+    "memory_settings": {
+        "max_cached_frames": 40,
+        "sequence_length_limit": 40,
+        "mini_batch_size": 1,
+        "binary_chunk_size": 10,
+        "inference_batch_size_gpu": 16,
+        "inference_batch_size_cpu": 12
+    },
+    "edge_ignore_settings": {
+        "enable": true,
+        "shrink_pixels": 50,
+        "comment": "使用ellipse.png掩码图片定义边缘区域，在此基础上内收缩200像素"
+    },
+    "small_colony_filter": {
+        "min_bbox_size": 30,
+        "label_as_growing": true,
+        "skip_classification": true,
+        "comment": "小菌落过滤设置：最小尺寸、标记为生长中、跳过多分类"
+    },
+    "advanced_evaluation": {
+        "enable_pr_curves": true,
+        "enable_map_calculation": true,
+        "enable_temporal_analysis": false,
+        "enable_dual_mode_evaluation": true,
+        "temporal_start_frame": 24,
+        "center_distance_thresholds_for_pr": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100],
+        "enable_distance_analysis": true,
+        "enable_spatial_distribution_analysis": true,
+        "enable_center_distance_heatmap": true,
+        "distance_analysis_bins": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100],
+        "comment": "高级评估功能：PR曲线、mAP计算、时序分析、双模式评估、中心距离分析"
+    },
+    "visualization_settings": {
+        "save_all_charts": true,
+        "save_chart_data": true,
+        "chart_dpi": 300,
+        "chart_language": "auto",
+        "enable_distance_distribution_plots": true,
+        "enable_center_distance_scatter": true,
+        "enable_matching_visualization": true,
+        "max_display_distance": 150,
+        "distance_plot_bins": 20,
+        "comment": "可视化设置：保存所有图表、保存图表数据、图表DPI、图表语言(auto/zh/en)、中心距离可视化"
+    },
+    "center_distance_analysis": {
+        "enable_comprehensive_analysis": true,
+        "distance_statistics": {
+            "enable_mean_std_analysis": true,
+            "enable_percentile_analysis": true,
+            "percentiles": [25, 50, 75, 90, 95],
+            "enable_outlier_detection": true,
+            "outlier_threshold_std": 3.0
+        },
+        "spatial_analysis": {
+            "enable_distance_heatmap": true,
+            "enable_regional_analysis": true,
+            "grid_divisions": [5, 5],
+            "enable_distance_vs_confidence_analysis": true
+        },
+        "matching_analysis": {
+            "enable_distance_distribution": true,
+            "enable_threshold_sensitivity_analysis": true,
+            "enable_failure_case_analysis": true,
+            "max_failure_distance": 100
+        },
+        "comment": "中心距离专项分析配置"
+    },
+    "hcp_params": {},
+    "evaluation_settings": {
+        "matching_algorithm": "center_distance",
+        "center_distance_settings": {
+            "default_threshold": 20.0,
+            "enable_sweep": true,
+            "sweep_start": 5.0,
+            "sweep_end": 100.0,
+            "sweep_step": 5.0,
+            "sweep_thresholds": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100]
+        },
+        "iou_settings": {
+            "default_threshold": 0.1,
+            "enable_sweep": false,
+            "sweep_start": 0.5,
+            "sweep_end": 0.95,
+            "sweep_step": 0.05
+        },
+        "enable_dual_mode_comparison": false,
+        "comment": "评估设置：匹配算法选择、中心距离和IoU参数配置"
+    },
+    "micro_batch_enabled": false,
+    "micro_batch_size": 20,
+    "data_loading": {
+        "num_workers": 16,
+        "pin_memory": true,
+        "prefetch_factor": 2,
+        "persistent_workers": true,
+        "comment": "数据加载设置：工作线程数、内存固定、预取因子、持久化工作线程"
+    },
+    "gpu_config": {
+        "gpu_ids": [2, 3],
+        "workers_per_gpu": 1,
+        "comment": "GPU配置：GPU设备列表、每个GPU的工作线程数"
+    },
+    "class_labels": {
+        "comment_class_labels": "【核心修复】用于结果可视化和报告的类别标签。这里的键必须是字符串形式的真实类别ID（例如 '1', '2', '3'），与上面的映射表的值相对应。",
+        "en": {
+            "1": "S.aureus PCA",
+            "2": "S.aureus Baird-Parker",
+            "3": "E.coli PCA",
+            "4": "Salmonella PCA",
+            "5": "E.coli VRBA"
+        },
+        "zh_CN": {
+            "1": "金黄葡萄球菌PCA",
+            "2": "金黄葡萄球菌BairdParker",
+            "3": "大肠杆菌PCA",
+            "4": "沙门氏菌PCA",
+            "5": "大肠杆菌VRBA"
+        }
+    },
+    "colors": [
+        [220, 20, 60],
+        [60, 179, 113],
+        [30, 144, 255],
+        [255, 215, 0],
+        [148, 0, 211]
+    ],
+    "comment_colors": "用于可视化的颜色 (RGB格式), 顺序与类别ID（减1后作为索引）对应。Colors used for visualization (in RGB format), corresponding to the class IDs (minus 1 as index).",
+    "report_generation": {
+        "enable_distance_analysis_report": true,
+        "include_distance_statistics": true,
+        "include_threshold_recommendations": true,
+        "include_failure_analysis": true,
+        "include_spatial_distribution_analysis": true,
+        "report_format": ["html", "excel"],
+        "language": "zh_CN",
+        "include_comparative_analysis": true,
+        "comment": "报告生成配置：中心距离分析报告的详细设置"
+    }
+}

@@ -1,0 +1,57 @@
+{
+  "detection_dir": "./dataset/source_sequences",
+  "export_dir": "./dataset/binary_dataset",
+  "rebuild": true,
+  "language": "zh_CN",
+  "annotations_only": false,
+  "debug": false,
+  "num_cores": 80,
+
+  "export_settings": {
+    "enable_bbox_expansion": true,
+    "bbox_expansion_config": {
+      "expansion_mode": "dynamic",
+      "expansion_ratio": 0.2,
+      "min_expansion_pixels": 10,
+      "max_expansion_pixels": 50,
+      "check_overlap": true,
+      "overlap_threshold": 0.3
+    },
+
+    "enable_category_limit": true,
+    "category_limit_config": {
+      "per_category_limit": 10000,
+      "stop_when_limit_reached": true
+    }
+  },
+
+  "pseudo_injection": {
+    "enable": true,
+    "target_category_name": "non-colony",
+    "target_category_id": 2,
+    "num_static_sequences": 5000,
+    "num_random_sequences": 5000,
+    "sequence_length": 40,
+    "image_generation": {
+      "base_size": [128, 128],
+      "size_variation": 0.3,
+      "brightness_range": [30, 220],
+      "contrast_variation": 0.4
+    }
+  },
+
+  "augmentation": {
+    "enable": true,
+    "target_category_name": "colony",
+    "target_category_id": 1,
+    "ops": [
+      "color_transform",
+      "increase_contrast",
+      "grayscale",
+      "increase_brightness",
+      "decrease_contrast"
+    ],
+    "variants_per_sequence": 1,
+    "brightness_cap": 245
+  }
+}

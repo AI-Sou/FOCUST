@@ -1,0 +1,80 @@
+{
+  "description": "auto_biocate1.py 的配置文件 - Configuration file for auto_biocate1.py",
+  "version": "1.0",
+
+  "export_settings": {
+    "enable_bbox_expansion": true,
+    "bbox_expansion_config": {
+      "description": "边界框扩张设置 - 在不与其他标注框重合的前提下向外扩张",
+      "expansion_mode": "dynamic",
+      "expansion_ratio": 0.2,
+      "min_expansion_pixels": 10,
+      "max_expansion_pixels": 50,
+      "check_overlap": true,
+      "overlap_threshold": 0.0
+    },
+
+    "enable_category_limit": true,
+    "category_limit_config": {
+      "description": "限制每个类别导出的序列数量 - 统一限制所有类别",
+      "per_category_limit": 10000,
+      "description_detail": "每个类别最多导出的序列数量（统一应用于所有类别）",
+      "stop_when_limit_reached": true
+    },
+
+    "enable_static_pseudo_sequences": false,
+    "static_pseudo_sequences_config": {
+      "description": "为指定类别生成静态图片伪序列，增强模型对动态生长特征的识别",
+      "target_categories": [2],
+      "sequences_per_category": 3000,
+      "sequence_length": 40,
+      "image_generation": {
+        "mode": "noise_based",
+        "base_size": [128, 128],
+        "size_variation": 0.2,
+        "noise_type": "perlin",
+        "color_mode": "grayscale",
+        "add_random_shapes": true,
+        "shape_types": ["circle", "ellipse", "rectangle"],
+        "shapes_per_image": [1, 3],
+        "brightness_range": [50, 200],
+        "contrast_variation": 0.3
+      },
+      "temporal_consistency": {
+        "enable": true,
+        "slight_variation": 0.05
+      }
+    }
+  },
+
+  "original_settings": {
+    "description": "原有的设置项（命令行参数的默认值）",
+    "num_cores": null,
+    "language": "zh_CN",
+    "annotations_only": false,
+    "debug": false
+  },
+
+  "notes": {
+    "bbox_expansion": [
+      "expansion_mode: 'dynamic' (动态扩张) 或 'fixed' (固定扩张)",
+      "expansion_ratio: 扩张比例，相对于原框大小 (如 0.2 = 20%)",
+      "min_expansion_pixels: 最小扩张像素数",
+      "max_expansion_pixels: 最大扩张像素数",
+      "check_overlap: 是否检查与其他框的重叠",
+      "overlap_threshold: 允许的重叠阈值 (0.0 = 不允许任何重叠)"
+    ],
+    "category_limit": [
+      "per_category_limit: 统一的类别限制，应用于所有类别（每个类别最多导出的序列数量）",
+      "stop_when_limit_reached: 达到限制后是否停止该类别的导出"
+    ],
+    "static_pseudo_sequences": [
+      "enable_static_pseudo_sequences: 是否启用静态伪序列生成",
+      "target_categories: 需要生成伪序列的类别名称列表",
+      "sequences_per_category: 每个类别生成的伪序列数量",
+      "sequence_length: 每个伪序列包含的图片数量（时间步）",
+      "mode: 图片生成模式 (noise_based/template_based)",
+      "temporal_consistency.enable: 是否在序列中保持轻微一致性（false=完全静态）"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "output_directory": "./pseudo_dataset_test",
+  "start_bbox_seq_id": 1,
+  "categories": [
+    {
+      "id": 2,
+      "name": "non-colony",
+      "supercategory": "colony"
+    }
+  ],
+  "generation_tasks": [
+    {
+      "category_name": "non-colony",
+      "num_static_sequences": 3,
+      "num_random_sequences": 2,
+      "sequence_length": 10,
+      "image_generation": {
+        "base_size": [128, 128],
+        "size_variation": 0.3,
+        "add_random_shapes": true,
+        "shape_types": ["circle", "ellipse", "rectangle"],
+        "shapes_per_image": [1, 3],
+        "brightness_range": [50, 200],
+        "contrast_variation": 0.3
+      }
+    }
+  ]
+}

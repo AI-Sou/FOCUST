@@ -1,0 +1,29 @@
+{
+  "output_directory": "./dataset/pseudo_sequences",
+  "start_bbox_seq_id": 1,
+  "use_parallel": true,
+  "categories": [
+    {
+      "id": 2,
+      "name": "non-colony",
+      "supercategory": "colony"
+    }
+  ],
+  "generation_tasks": [
+    {
+      "category_name": "non-colony",
+      "num_static_sequences": 2500,
+      "num_random_sequences": 2500,
+      "sequence_length": 40,
+      "image_generation": {
+        "base_size": [128, 128],
+        "size_variation": 0.3,
+        "add_random_shapes": true,
+        "shape_types": ["circle", "ellipse", "rectangle", "polygon"],
+        "shapes_per_image": [1, 5],
+        "brightness_range": [30, 220],
+        "contrast_variation": 0.4
+      }
+    }
+  ]
+}
