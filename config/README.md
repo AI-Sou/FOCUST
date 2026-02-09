@@ -1,6 +1,10 @@
 # config
 
-中文文档。English documentation is available in `config/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 本目录集中管理 FOCUST 的 JSON 配置文件。配置体系按可版本化、可合并、可复现三项原则组织，使每一次实验与每一次部署都可以用一个配置快照完整描述。
 

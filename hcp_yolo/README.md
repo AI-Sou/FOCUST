@@ -1,6 +1,10 @@
 # hcp_yolo
 
-中文文档。English documentation is available in `hcp_yolo/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `hcp_yolo/` 提供 HCP 时序编码与 YOLO 检测的一体化引擎实现，对应主系统中的 `engine=hcp_yolo`。该模块既可以作为主系统的一部分使用，也可以通过 `python -m hcp_yolo` 独立运行，用于数据集构建、训练、推理与评估。
 

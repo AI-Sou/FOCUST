@@ -1,6 +1,10 @@
 # hcp_yolo
 
-English documentation. Chinese documentation is available in `hcp_yolo/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `hcp_yolo/` provides the HCP temporal encoding plus YOLO detection engine used by the main system as `engine=hcp_yolo`. It can run as part of the unified pipeline or as a standalone module via `python -m hcp_yolo` for dataset construction, training, inference, and evaluation.
 

@@ -1,6 +1,10 @@
 # scripts/one_click
 
-English documentation. Chinese documentation is available in `scripts/one_click/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 This directory contains one click driver scripts that chain multiple steps from `scripts/` and write the effective override configuration into the output directory for auditing and repeatability. The scripts are Linux focused and verify system type at runtime.
 

@@ -1,6 +1,10 @@
 # bi_train
 
-English documentation. Chinese documentation is available in `bi_train/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `bi_train/` trains the binary filter used by the `engine=hcp` pipeline. Its purpose is to separate colonies from non colony artifacts among HCP proposals, reducing false positives and reducing the compute load of the multi class stage.
 

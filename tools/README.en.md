@@ -1,6 +1,10 @@
 # tools
 
-English documentation. Chinese documentation is available in `tools/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `tools/` contains utility scripts for dataset cleaning, annotation repair, dataset restructuring, evaluation regeneration, and report production. These tools do not affect the main workflows of `gui.py` and `laptop_ui.py`, but they are essential when working with noisy and inconsistent real world datasets.
 

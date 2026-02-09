@@ -1,6 +1,10 @@
 # detection
 
-English documentation. Chinese documentation is available in `detection/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `detection/` is the detection, evaluation, and visualization layer of FOCUST. It consumes unified outputs from both inference engines and produces deliverables that are comparable, summarizable, and report ready.
 

@@ -1,6 +1,10 @@
 # gui
 
-English documentation. Chinese documentation is available in `gui/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `gui/` contains the visual interfaces and GUI components of FOCUST. It consolidates dataset construction, training, detection and evaluation, and annotation editing in one project while keeping configuration and outputs consistent between GUI and CLI.
 

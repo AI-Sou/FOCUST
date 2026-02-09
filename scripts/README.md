@@ -1,6 +1,10 @@
 # scripts
 
-中文文档。English documentation is available in `scripts/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 本目录提供面向 Linux 的 Bash 自动化脚本，用于将 FOCUST 的完整流程以可复现的方式串联执行。脚本按 `00_*.sh` 顺序编号，便于从数据集构建、训练、推理到评估与报告逐步推进。
 

@@ -1,6 +1,10 @@
 # scripts/one_click
 
-中文文档。English documentation is available in `scripts/one_click/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 本目录提供一键式驱动脚本，将 `scripts/` 中的多个步骤串联执行，并在输出目录写入实际使用的 override 配置，以便复跑与审计。脚本仅面向 Linux，运行时会检测系统类型。
 

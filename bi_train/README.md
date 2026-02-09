@@ -1,6 +1,10 @@
 # bi_train
 
-中文文档。English documentation is available in `bi_train/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `bi_train/` 用于训练二分类过滤器，目标是将候选框中的菌落与非菌落进行区分，从而降低误检并减少多分类阶段的计算量。本模块主要服务于 `engine=hcp` 推理链路。
 

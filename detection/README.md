@@ -1,6 +1,10 @@
 # detection
 
-中文文档。English documentation is available in `detection/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `detection/` 是 FOCUST 的检测、评估与可视化层。该模块接收两条推理引擎的统一输出，并负责将结果组织为可对比、可汇总、可报告的交付物。
 

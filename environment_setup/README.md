@@ -1,6 +1,10 @@
 # environment_setup
 
-中文文档。English documentation is available in `environment_setup/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 本目录提供 FOCUST 的环境构建与自检工具，覆盖 Conda 环境文件、一键安装脚本、跨平台智能安装脚本与 Docker 配置。若以最快速度运行 GUI 与检测流程为目标，建议优先使用跨平台安装脚本或 Conda 环境文件。
 

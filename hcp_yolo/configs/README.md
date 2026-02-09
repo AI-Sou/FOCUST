@@ -1,5 +1,9 @@
 # hcp_yolo configs
 
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
 本目录存放 HCP 编码加 YOLO 的示例与模板配置文件，格式为 JSON。它们用于快速复用训练、推理与评估的常用参数组合。
 
 ---
@@ -20,4 +24,3 @@
 - `config_a800_optimized.json` 大显存高吞吐训练参数示例
 - `config_adaptive_concurrent.json` 并发与自适应调度参数示例
 - `multi_model_config.json` 多模型训练与对比配置示例
-

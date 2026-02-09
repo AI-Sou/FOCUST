@@ -1,6 +1,10 @@
 # gui
 
-中文文档。English documentation is available in `gui/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `gui/` 提供 FOCUST 的可视化界面与组件。该模块将数据构建、训练、检测评估与标注编辑集中在同一工程内，确保同一份配置在 GUI 与 CLI 下得到一致的行为与一致的输出。
 

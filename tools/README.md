@@ -1,6 +1,10 @@
 # tools
 
-中文文档。English documentation is available in `tools/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `tools/` 收纳 FOCUST 的工具脚本，用于数据清洗、标注修复、数据集重整、评估结果再生成与报告制作。这些工具不影响 `gui.py` 与 `laptop_ui.py` 的主流程，但在真实数据存在噪声、格式差异与标注不一致的场景下非常关键。
 

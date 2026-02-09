@@ -1,6 +1,10 @@
 # config
 
-English documentation. Chinese documentation is available in `config/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 This directory centralizes JSON configuration files for FOCUST. The configuration system is designed to support versioned experiments, minimal overrides, and reproducible delivery across GUI and CLI.
 

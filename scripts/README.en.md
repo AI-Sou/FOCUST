@@ -1,6 +1,10 @@
 # scripts
 
-English documentation. Chinese documentation is available in `scripts/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 This directory contains Linux focused Bash automation scripts that chain the full FOCUST workflow in a reproducible way. Scripts are ordered using the `00_*.sh` naming convention so you can run dataset construction, training, inference, evaluation, and reporting step by step.
 

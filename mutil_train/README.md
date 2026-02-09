@@ -1,6 +1,10 @@
 # mutil_train
 
-中文文档。English documentation is available in `mutil_train/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `mutil_train/` 用于训练菌种多分类模型，对通过二分类过滤后的菌落候选进行五类识别。本模块既可服务 `engine=hcp` 的主链路，也可在 `engine=hcp_yolo` 中作为可选细化模块，对 YOLO 的检测结果进行类别校正。
 

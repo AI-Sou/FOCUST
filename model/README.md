@@ -1,6 +1,10 @@
 # model
 
-中文文档。English documentation is available in `model/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 本目录用于存放本地模型权重文件。FOCUST 默认离线运行，不会自动下载权重，因此将权重集中放置在 `model/` 是最稳定的交付方式。
 

@@ -1,6 +1,10 @@
 # architecture
 
-English documentation. Chinese documentation is available in `architecture/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `architecture/` contains offline scripts for batch detection, evaluation, report generation, and research analysis. These scripts do not change the main entrypoints, but they are useful for server side batch experiments and controlled comparisons.
 

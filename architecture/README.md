@@ -1,6 +1,10 @@
 # architecture
 
-中文文档。English documentation is available in `architecture/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `architecture/` 收纳离线脚本，用于批量检测、评估、报告生成与研究分析。这些脚本不影响 `gui.py` 与 `laptop_ui.py` 的主入口，但更适合在服务器环境进行批量实验与对比分析。
 

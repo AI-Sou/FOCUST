@@ -1,6 +1,10 @@
 # mutil_train
 
-English documentation. Chinese documentation is available in `mutil_train/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `mutil_train/` trains the multi class classifier for species and media identification. It is used by the `engine=hcp` main pipeline and can also be used as an optional refinement stage for `engine=hcp_yolo`.
 

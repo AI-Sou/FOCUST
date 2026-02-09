@@ -1,6 +1,10 @@
 # environment_setup
 
-English documentation. Chinese documentation is available in `environment_setup/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 This directory contains environment setup and validation tooling for FOCUST, including a Conda environment file, one click setup scripts, a cross platform installer, and Docker support. For the fastest path to a working GUI and inference pipeline, using the cross platform installer or the Conda environment file is recommended.
 

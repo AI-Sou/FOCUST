@@ -1,6 +1,10 @@
 # core
 
-English documentation. Chinese documentation is available in `core/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `core/` provides shared foundations for FOCUST, including configuration management, device selection, training wrappers, inference wrappers, temporal processing utilities, and font rendering. It is used by `gui.py`, `laptop_ui.py`, and the repository tooling scripts.
 

@@ -1,6 +1,10 @@
 # core
 
-中文文档。English documentation is available in `core/README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 `core/` 提供 FOCUST 的公共基础能力，包括配置管理、设备选择、训练调度封装、推理封装、时序处理与字体渲染。该目录被 `gui.py`、`laptop_ui.py` 以及工具脚本共同复用。
 

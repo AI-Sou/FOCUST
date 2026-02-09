@@ -4,18 +4,14 @@
   <a href="README.md">中文</a> | <a href="README.en.md">English</a>
 </p>
 
-本目录提供面向 Linux 与服务器环境的 Bash 脚本，使 `hcp_yolo/` 可以独立使用。脚本会自动设置 `PYTHONPATH`，并注入常用的 PyTorch CUDA 内存分配配置以缓解显存碎片化问题。
+This directory provides Bash scripts for Linux and server environments, enabling standalone use of `hcp_yolo/`. The scripts set `PYTHONPATH` and inject common PyTorch CUDA allocator settings to reduce memory fragmentation.
 
----
+## Conventions
 
-## 统一约定
+- set the Python interpreter with `PYTHON_BIN`, default is `python`
+- injects `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
 
-- 通过环境变量 `PYTHON_BIN` 指定 Python 解释器，默认值为 `python`
-- 默认注入 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
-
----
-
-## 示例
+## Examples
 
 ```bash
 bash hcp_yolo/scripts/build_dataset.sh --anno-json /path/to/annotations.json --images-dir /path/to/images --output ./hcp_dataset

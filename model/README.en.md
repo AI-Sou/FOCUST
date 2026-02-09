@@ -1,6 +1,10 @@
 # model
 
-English documentation. Chinese documentation is available in `model/README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+
 
 This directory stores local model weight files. FOCUST is designed for offline delivery and does not download weights automatically, so keeping all weights under `model/` is the most stable deployment approach.
 
