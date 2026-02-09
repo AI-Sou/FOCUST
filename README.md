@@ -1,6 +1,12 @@
 # FOCUST
 
-中文文档。English documentation is available in `README.en.md`。
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
+  <img src="logo.png" alt="FOCUST Logo" width="96" height="96">
+</p>
 
 FOCUST 面向食源性致病菌相关的培养皿成像场景，提供时序菌落系统的研究与工程化实现，覆盖菌落候选检测、菌落与杂质分离、菌种多分类识别，以及从数据构建到训练、推理、评估与报告生成的可复现链路。系统以时序生长信号为核心线索，默认以四十帧图像序列作为一个样本单位，并保持 GUI 与 CLI 的一致配置与一致输出。
 
@@ -265,4 +271,4 @@ FOCUST/
 
 ## 许可说明
 
-本仓库未随附 `LICENSE` 文件。对外发布与分发前，请明确许可证条款并补充相应文件，同时在 README 中保留完整的致谢与合作信息。
+本项目采用 MIT License，详见 `LICENSE`。

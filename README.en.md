@@ -1,6 +1,12 @@
 # FOCUST
 
-English documentation. Chinese documentation is available in `README.md`.
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
+  <img src="logo.png" alt="FOCUST Logo" width="96" height="96">
+</p>
 
 FOCUST is a time series colony system for foodborne pathogen workflows. It covers proposal generation, colony versus artifact separation, multi class identification, and a reproducible engineering pipeline from dataset construction to training, inference, evaluation, and reporting. The system treats temporal growth as the primary signal and uses a forty frame image sequence as the default sample unit. GUI and CLI share the same configuration and the same outputs.
 
@@ -263,6 +269,6 @@ For technical support, you can reach me via the contact email found in the commi
 
 ---
 
-## License note
+## License
 
-This repository does not include a `LICENSE` file. Before external distribution, define the license terms, add the license file, and keep complete acknowledgments and collaboration information in the documentation.
+This project is licensed under the MIT License. See `LICENSE`.
