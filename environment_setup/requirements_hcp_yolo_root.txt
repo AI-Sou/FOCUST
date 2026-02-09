@@ -1,0 +1,24 @@
+# HCP+YOLO融合架构所需的依赖包
+# 基础依赖
+numpy>=1.21.0
+opencv-python>=4.5.0
+torch>=1.9.0
+torchvision>=0.10.0
+ultralytics>=8.0.0
+loguru>=0.6.0
+PyYAML>=6.0
+click>=8.0.0
+rich>=12.0.0
+
+# 数据处理
+pandas>=1.3.0
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+Pillow>=8.3.0
+
+# 可选依赖（用于更好的性能）
+onnx>=1.12.0        # 用于模型导出
+tensorboard>=2.8.0    # 用于训练可视化
+tqdm>=4.62.0         # 进度条
+seaborn>=0.11.0      # 用于更好的可视化
+plotly>=5.0.0        # 交互式可视化
