@@ -1,0 +1,10 @@
+{
+  "last_source_dataset": "",
+  "last_output_path": "",
+  "balance_ratio": 1,
+  "use_hcp_filter": true,
+  "quality_threshold": 50,
+  "language": "zh_CN",
+  "positive_categories": [],
+  "negative_categories": []
+}

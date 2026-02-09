@@ -1,0 +1,38 @@
+{
+    "comment": "IoU vs 中心距离双模式对比配置",
+    "mode": "batch",
+    "input_path": "/path/to/dataset",
+    "output_path": "./output_comparison",
+
+    "evaluation_settings": {
+        "matching_algorithm": "center_distance",
+        "center_distance_settings": {
+            "default_threshold": 20.0,
+            "enable_sweep": true,
+            "sweep_thresholds": [10, 15, 20, 25, 30, 40, 50]
+        },
+        "iou_settings": {
+            "default_threshold": 0.5,
+            "enable_sweep": true,
+            "sweep_start": 0.3,
+            "sweep_end": 0.9,
+            "sweep_step": 0.1
+        },
+        "enable_dual_mode_comparison": true,
+        "comment": "同时启用IoU和中心距离两种算法进行对比分析"
+    },
+
+    "advanced_evaluation": {
+        "enable_pr_curves": true,
+        "enable_dual_mode_evaluation": true,
+        "center_distance_thresholds_for_pr": [10, 15, 20, 25, 30, 40, 50],
+        "comment": "双模式评估：同时生成两种算法的PR曲线"
+    },
+
+    "report_generation": {
+        "enable_distance_analysis_report": true,
+        "include_comparative_analysis": true,
+        "language": "zh_CN",
+        "report_format": ["html", "excel"]
+    }
+}

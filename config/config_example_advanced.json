@@ -1,0 +1,62 @@
+{
+    "comment": "高级中心距离分析配置示例",
+    "mode": "batch",
+    "input_path": "/path/to/dataset",
+    "output_path": "./output_advanced_analysis",
+
+    "evaluation_settings": {
+        "matching_algorithm": "center_distance",
+        "center_distance_settings": {
+            "default_threshold": 20.0,
+            "enable_sweep": true,
+            "sweep_start": 5.0,
+            "sweep_end": 100.0,
+            "sweep_step": 5.0,
+            "sweep_thresholds": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100]
+        }
+    },
+
+    "center_distance_analysis": {
+        "enable_comprehensive_analysis": true,
+        "distance_statistics": {
+            "enable_mean_std_analysis": true,
+            "enable_percentile_analysis": true,
+            "percentiles": [25, 50, 75, 90, 95],
+            "enable_outlier_detection": true,
+            "outlier_threshold_std": 3.0
+        },
+        "spatial_analysis": {
+            "enable_distance_heatmap": true,
+            "enable_regional_analysis": true,
+            "grid_divisions": [5, 5],
+            "enable_distance_vs_confidence_analysis": true
+        },
+        "matching_analysis": {
+            "enable_distance_distribution": true,
+            "enable_threshold_sensitivity_analysis": true,
+            "enable_failure_case_analysis": true,
+            "max_failure_distance": 100
+        }
+    },
+
+    "visualization_settings": {
+        "save_all_charts": true,
+        "save_chart_data": true,
+        "enable_distance_distribution_plots": true,
+        "enable_center_distance_scatter": true,
+        "enable_matching_visualization": true,
+        "max_display_distance": 150,
+        "distance_plot_bins": 20
+    },
+
+    "report_generation": {
+        "enable_distance_analysis_report": true,
+        "include_distance_statistics": true,
+        "include_threshold_recommendations": true,
+        "include_failure_analysis": true,
+        "include_spatial_distribution_analysis": true,
+        "report_format": ["html", "excel"],
+        "language": "zh_CN",
+        "include_comparative_analysis": true
+    }
+}

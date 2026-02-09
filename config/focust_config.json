@@ -1,0 +1,343 @@
+{
+  "app_info": {
+    "name": "FOCUST 食源性致病菌时序自动化训练检测系统",
+    "version": "2.0.0",
+    "description": "Foodborne Pathogen Temporal Automated Training Detection System"
+  },
+  "ui_settings": {
+    "language": "zh_CN",
+    "theme": "default",
+    "window_size": [
+      1200,
+      800
+    ],
+    "auto_save_interval": 300
+  },
+  "device_config": {
+    "gpu_device": "cpu",
+    "use_multi_gpu": false,
+    "max_gpu_memory_mb": 25000,
+    "num_workers": 4,
+    "memory_optimization": true,
+    "micro_batch_enabled": false,
+    "micro_batch_size": 20
+  },
+  "memory_settings": {
+    "max_sequence_prep_mb": "auto",
+    "sequence_prep_num_workers": 1,
+    "disable_auto_micro_batch": false,
+    "force_no_chunking": false,
+    "cache_clear_cuda": false
+  },
+  "training_defaults": {
+    "binary": {
+      "epochs": 50,
+      "batch_size": 8,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "optimizer": "Adam",
+      "patience": 10,
+      "seed": 42
+    },
+    "multiclass": {
+      "epochs": 50,
+      "batch_size": 4,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "optimizer": "Adam",
+      "patience": 10,
+      "seed": 42
+    }
+  },
+  "model_defaults": {
+    "binary": {
+      "feature_dim": 64,
+      "max_seq_length": 100,
+      "hidden_size_cfc": 6,
+      "output_size_cfc": 2,
+      "fusion_hidden_size": 64,
+      "sparsity_level": 0.5,
+      "cfc_seed": 22222
+    },
+    "multiclass": {
+      "feature_dim": 64,
+      "max_seq_length": 100,
+      "hidden_size_cfc_path1": 32,
+      "hidden_size_cfc_path2": 32,
+      "fusion_units": 32,
+      "fusion_output_size": 30,
+      "output_size_cfc_path1": 8,
+      "output_size_cfc_path2": 8,
+      "sparsity_level": 0.5,
+      "cfc_seed": 22222
+    }
+  },
+  "paths": {
+    "output_dir": "./output",
+    "model_dir": "./model",
+    "log_dir": "./logs",
+    "temp_dir": "./temp",
+    "training_dataset": "./data/training_dataset",
+    "_comment": "临时文件目录 | Temporary files directory"
+  },
+  "data_settings": {
+    "data_mode": "normal",
+    "image_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".bmp"
+    ],
+    "annotation_format": "json"
+  },
+  "_metadata": {
+    "description": "FOCUST 时序自动化训练与检测系统配置文件",
+    "version": "2.0.0",
+    "created": "2025-10-30",
+    "comment": "菌落分析与评估系统 - Colony Analysis and Evaluation System"
+  },
+  "system": {
+    "mode": "gui",
+    "_comment": "界面语言: 'zh_CN' 中文简体, 'en_us' 英文 | Interface language",
+    "language": "en"
+  },
+  "device": {
+    "gpu_device": "cpu",
+    "_comment": "检测数据块大小 | Detection chunk size",
+    "use_multi_gpu": false,
+    "max_gpu_memory_mb": 80000,
+    "num_workers": 16,
+    "memory_optimization": true,
+    "micro_batch_enabled": false,
+    "micro_batch_size": 20,
+    "chunk_size": 25,
+    "detection_chunk_size": 25
+  },
+  "training": {
+    "type": "multiclass",
+    "_comment": "超参数优化试验次数 | Number of trials for hyperparameter optimization",
+    "data_mode": "normal",
+    "train_ratio": 70,
+    "val_ratio": 15,
+    "test_ratio": 15,
+    "enable_auto_hp_check": false,
+    "num_trials": 30
+  },
+  "training_hyperparameters": {
+    "binary": {
+      "epochs": 50,
+      "batch_size": 8,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "optimizer": "Adam",
+      "patience": 10,
+      "seed": 42,
+      "accumulation_steps": 1,
+      "_comment": "二分类训练超参数 | Binary classification training hyperparameters"
+    },
+    "multiclass": {
+      "epochs": 50,
+      "batch_size": 4,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "optimizer": "Adam",
+      "patience": 10,
+      "seed": 42,
+      "accumulation_steps": 1,
+      "_comment": "多分类训练超参数 | Multi-classification training hyperparameters"
+    }
+  },
+  "model_architecture": {
+    "common": {
+      "feature_dim": 64,
+      "max_seq_length": 100,
+      "image_size": 224,
+      "dropout_rate": 0.2,
+      "sparsity_level": 0.5,
+      "cfc_seed": 22222,
+      "_comment": "通用模型架构参数 | Common model architecture parameters"
+    },
+    "binary": {
+      "hidden_size_cfc": 6,
+      "output_size_cfc": 2,
+      "fusion_hidden_size": 64,
+      "_comment": "二分类模型架构参数 | Binary classification model architecture parameters"
+    },
+    "multiclass": {
+      "hidden_size_cfc_path1": 32,
+      "hidden_size_cfc_path2": 32,
+      "fusion_units": 32,
+      "fusion_output_size": 30,
+      "output_size_cfc_path1": 8,
+      "output_size_cfc_path2": 8,
+      "_comment": "多分类模型架构参数 | Multi-classification model architecture parameters"
+    }
+  },
+  "pretrained_models": {
+    "binary_classifier": "",
+    "multiclass_classifier": "",
+    "_comment": "预训练模型路径，为空则从头训练 | Pre-trained model paths, empty means train from scratch"
+  },
+  "hcp_algorithm": {
+    "num_bg_frames": 10,
+    "bf_diameter": 9,
+    "otsu_threshold_fallback_v2": 15.0,
+    "min_colony_area_px": 15,
+    "bio_validation_enable": true,
+    "min_growth_slope_threshold": 0.05,
+    "_comment": "HpyerCoreProcessor核心检测算法参数 | HpyerCoreProcessor core detection algorithm parameters"
+  },
+  "evaluation": {
+    "basic": {
+      "single_point_iou": 0.5,
+      "perform_iou_sweep": true,
+      "iou_sweep_start": 0.5,
+      "iou_sweep_end": 0.95,
+      "iou_sweep_step": 0.05,
+      "_comment": "基础评估参数 | Basic evaluation parameters"
+    },
+    "matching_algorithm": {
+      "method": "center_distance",
+      "_comment": "启用双模式对比评估 | Enable dual-mode comparison evaluation",
+      "center_distance": {
+        "threshold_pixels": 20.0,
+        "_comment": "中心距离阈值(像素) | Center distance threshold in pixels"
+      },
+      "enable_dual_mode": false
+    },
+    "metrics": {
+      "enable_advanced_metrics": true,
+      "enable_per_class_analysis": true,
+      "enable_temporal_analysis": true,
+      "enable_detection_details": true,
+      "enable_confusion_matrix": true,
+      "enable_error_analysis": true,
+      "_comment": "评估指标配置 | Evaluation metrics configuration"
+    },
+    "visualization": {
+      "enable_visualization": true,
+      "visualization_dpi": 300,
+      "enable_svg_export": true,
+      "visualization_save_format": [
+        "png",
+        "jpg"
+      ],
+      "enable_sequence_visualization": true,
+      "_comment": "可视化配置 | Visualization configuration"
+    },
+    "reports": {
+      "generate_html_report": true,
+      "generate_excel_report": true,
+      "generate_pr_curves": true,
+      "pr_curve_iou_thresholds": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9
+      ],
+      "generate_recommendations": true,
+      "evaluation_language": "en",
+      "_comment": "报告生成配置 | Report generation configuration"
+    },
+    "data": {
+      "save_evaluation_data": true,
+      "save_chart_data": true,
+      "max_workers": 4,
+      "_comment": "数据处理配置 | Data processing configuration"
+    }
+  },
+  "data": {
+    "image_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".bmp"
+    ],
+    "annotation_format": "json",
+    "_comment": "数据文件格式配置 | Data file format configuration"
+  },
+  "class_labels": {
+    "en_us": {
+      "1": "S.aureus PCA",
+      "2": "S.aureus Baird-Parker",
+      "3": "E.coli PCA",
+      "4": "Salmonella PCA",
+      "5": "E.coli VRBA"
+    },
+    "zh_cn": {
+      "1": "金黄葡萄球菌PCA",
+      "2": "金黄葡萄球菌BairdParker",
+      "3": "大肠杆菌PCA",
+      "4": "沙门氏菌PCA",
+      "5": "大肠杆菌VRBA"
+    },
+    "_comment": "多分类标签定义，键为类别ID，值为类别名称 | Multi-classification labels, keys are category IDs, values are names"
+  },
+  "visualization": {
+    "colors": [
+      [
+        220,
+        20,
+        60
+      ],
+      [
+        60,
+        179,
+        113
+      ],
+      [
+        30,
+        144,
+        255
+      ],
+      [
+        255,
+        215,
+        0
+      ],
+      [
+        148,
+        0,
+        211
+      ]
+    ],
+    "_comment": "可视化颜色配置(RGB格式)，对应类别标签顺序 | Visualization colors in RGB format, corresponding to class label order"
+  },
+  "ui": {
+    "theme": "default",
+    "window_size": [
+      1200,
+      800
+    ],
+    "auto_save_interval": 300,
+    "_comment": "用户界面配置 | User interface configuration"
+  },
+  "logging": {
+    "level": "INFO",
+    "_comment": "日志级别: DEBUG, INFO, WARNING, ERROR | Log level"
+  },
+  "_usage_notes": {
+    "configuration_guide": "配置文件使用指南 | Configuration File Usage Guide",
+    "notes": [
+      "1. 所有路径都支持相对路径和绝对路径 | All paths support relative and absolute paths",
+      "2. GPU配置根据实际硬件情况调整 | Adjust GPU configuration based on actual hardware",
+      "3. 训练参数可根据数据集大小和性能需求调整 | Training parameters can be adjusted based on dataset size and performance requirements",
+      "4. 评估功能可根据需要选择性启用 | Evaluation features can be selectively enabled as needed",
+      "5. 修改配置后建议重启系统以确保生效 | Recommend restarting system after configuration changes"
+    ]
+  }
+}

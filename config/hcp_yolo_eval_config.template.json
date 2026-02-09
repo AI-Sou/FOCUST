@@ -1,0 +1,40 @@
+{
+  "base_config": "server_det.json",
+  "engine": "hcp_yolo",
+  "mode": "batch",
+  "input_path": "/path/to/seqanno_dataset_root",
+  "output_path": "runs/laptop_ui_eval",
+  "device": "auto",
+  "models": {
+    "yolo_model": "runs/train_and_evaluate_complete/XXXX/detection/yolo11n/.../best.pt"
+  },
+  "hcp_params": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0
+  },
+  "inference": {
+    "conf_threshold": 0.25,
+    "nms_iou": 0.45,
+    "use_sahi": true,
+    "slice_size": 640,
+    "overlap_ratio": 0.2
+  },
+  "evaluation": {
+    "matching_algorithm": {
+      "iou": { "threshold": 0.5 },
+      "center_distance": { "threshold_pixels": 30.0 }
+    }
+  }
+}

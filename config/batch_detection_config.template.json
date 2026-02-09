@@ -1,0 +1,52 @@
+{
+  "base_config": "server_det.json",
+  "engine": "hcp_yolo",
+  "mode": "hcp_yolo_batch_detect",
+  "device": "auto",
+  "fallback_to_all_images_if_no_back": false,
+  "models": {
+    "yolo_model": "runs/train_and_evaluate_complete/XXXX/classification/yolo11n/.../best.pt"
+  },
+  "batch_detection": {
+    "roots": [
+      "/path/to/big_folder_1",
+      "/path/to/big_folder_2"
+    ],
+    "recursive": false,
+    "only_back_images": true,
+    "input_root_directories": [
+      "/path/to/big_folder_1",
+      "/path/to/big_folder_2"
+    ],
+    "output_directory": "runs/batch_detect",
+    "fallback_to_all_images_if_no_back": false
+  },
+  "outputs": {
+    "out_dir": "runs/batch_detect",
+    "save_visualization": true
+  },
+  "hcp_params": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "max_frames": 40
+  },
+  "inference": {
+    "conf_threshold": 0.25,
+    "nms_iou": 0.45,
+    "use_sahi": true,
+    "slice_size": 640,
+    "overlap_ratio": 0.2
+  }
+}

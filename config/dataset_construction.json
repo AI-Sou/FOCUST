@@ -1,0 +1,197 @@
+{
+  "comment": "Alias of dataset_construction_config.json (kept for users who reference config/dataset_construction.json).",
+  "_note": "Edit this file (or dataset_construction_config.json) on server; paths stay the same.",
+  "compatibility_mode": true,
+  "language": "en",
+  "input_paths": [
+    "/public/home/swun-jiangmf/2.project/13.sq_colony_count_and_identification/1.data/9.food_three_cat_20241120/3.20250827_food_stuff_distrub/2025年08月25日",
+    "/public/home/swun-jiangmf/2.project/13.sq_colony_count_and_identification/1.data/9.food_three_cat_20241120/2025_11_include_food"
+  ],
+  "output_path": "./dataset_output",
+  "models": {
+    "binary_classifier": "./model/erfen.pth",
+    "multiclass_classifier": "./model/mutilfen.pth",
+    "multiclass_index_to_category_id_map": {
+      "0": 1,
+      "1": 2,
+      "2": 3,
+      "3": 4,
+      "4": 5
+    }
+  },
+  "batch_detection": {
+    "back_images_only": true,
+    "fallback_to_all_images_if_no_back": false,
+    "image_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".bmp",
+      ".tif",
+      ".tiff"
+    ]
+  },
+  "io_settings": {
+    "_comment": "Speed/IO tuning. copy_mode is forced to copy (no links). For fastest build on server: raise copy_workers and use image_size_strategy=first_image.",
+    "copy_mode": "copy",
+    "copy_workers": 32,
+    "image_size_strategy": "first_image",
+    "overwrite_existing": true,
+    "annotations_indent": null
+  },
+  "cpu_settings": {
+    "_comment": "CPU thread tuning. For multi-GPU builds, avoid oversubscribing: set OpenCV threads low and cap HCP executor workers per process.",
+    "opencv_num_threads": 1,
+    "hcp_executor_max_workers": 8
+  },
+  "torch_settings": {
+    "_comment": "Optional GPU speed knobs. allow_tf32/cudnn_benchmark can improve throughput (minor numeric differences possible).",
+    "cudnn_benchmark": true,
+    "allow_tf32": true,
+    "matmul_precision": "high"
+  },
+  "resume_settings": {
+    "_comment": "Preemption-safe resume. Writes build_state.json + atomic annotations.json; safe to restart after interruption.",
+    "enabled": true,
+    "state_file_name": "build_state.json",
+    "skip_completed": true,
+    "cleanup_incomplete": true,
+    "verify_done": true,
+    "flush_interval": 1
+  },
+  "memory_settings": {
+    "_comment": "Memory safety for sequence preparation (CPU RAM). Lower value => earlier micro-batch fallback.",
+    "max_sequence_prep_mb": 8192,
+    "sequence_prep_num_workers": 8,
+    "inference_batch_size_gpu": 4,
+    "inference_batch_size_cpu": 4,
+    "_speed_tip": "For fastest throughput, avoid frequent cache clearing; enable only if you see OOM/fragmentation over long runs.",
+    "cache_clear_interval_folders": 0,
+    "cache_clear_gc": false,
+    "cache_clear_cuda": false,
+    "cache_clear_ipc": false,
+    "disable_auto_micro_batch": false,
+    "force_no_chunking": false
+  },
+  "gpu_config": {
+    "_comment": "If use_multi_gpu=true and gpu_ids has >1 entries, dataset construction can process folders in parallel across GPUs.",
+    "use_multi_gpu": true,
+    "gpu_ids": [0, 1, 2, 3]
+  },
+  "micro_batch_enabled": true,
+  "micro_batch_size": 96,
+  "dataset_construction": {
+    "input_root_directory": "/public/home/swun-jiangmf/2.project/13.sq_colony_count_and_identification/1.data/9.food_three_cat_20241120/3.20250827_food_stuff_distrub/2025年08月25日",
+    "input_paths": [
+      "/public/home/swun-jiangmf/2.project/13.sq_colony_count_and_identification/1.data/9.food_three_cat_20241120/3.20250827_food_stuff_distrub/2025年08月25日",
+      "/public/home/swun-jiangmf/2.project/13.sq_colony_count_and_identification/1.data/9.food_three_cat_20241120/2025_11_include_food"
+    ],
+    "output_directory": "./dataset_output",
+    "enable_multiclass": false,
+    "multiclass_settings": {
+      "enabled": false,
+      "model_path": "./model/mutilfen.pth",
+      "index_to_category_id_map": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5
+      },
+      "confidence_threshold": 0.5
+    },
+    "binary_settings": {
+      "model_path": "./model/erfen.pth",
+      "confidence_threshold": 0.5
+    },
+    "folder_processing": {
+      "process_all_subfolders": true,
+      "selected_subfolders": [],
+      "auto_detect_categories": true
+    },
+    "manual_classification": {
+      "enabled": false,
+      "default_classes": {
+        "colony": 1
+      },
+      "interactive_selection": false
+    },
+    "dataset_settings": {
+      "create_detection_dataset": true,
+      "create_classification_dataset": true,
+      "train_ratio": 0.8,
+      "val_ratio": 0.1,
+      "test_ratio": 0.1,
+      "annotation_format": "coco",
+      "image_size": [640, 640]
+    },
+    "detection_parameters": {
+      "confidence_threshold": 0.5,
+      "iou_threshold": 0.4,
+      "min_bbox_size": 20,
+      "max_bbox_size": 500
+    },
+    "quality_control": {
+      "check_image_corruption": true,
+      "min_image_size": [100, 100],
+      "max_image_size": [2000, 2000],
+      "remove_duplicates": true
+    },
+    "device": "cuda:0",
+    "language": "en",
+    "batch_detection": {
+      "back_images_only": true,
+      "fallback_to_all_images_if_no_back": false,
+      "image_extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".tif",
+        ".tiff"
+      ]
+    },
+    "io_settings": {
+      "copy_mode": "copy",
+      "copy_workers": 32,
+      "image_size_strategy": "first_image",
+      "overwrite_existing": true,
+      "annotations_indent": null
+    },
+    "cpu_settings": {
+      "opencv_num_threads": 1,
+      "hcp_executor_max_workers": 8
+    },
+    "torch_settings": {
+      "cudnn_benchmark": true,
+      "allow_tf32": true,
+      "matmul_precision": "high"
+    },
+    "resume_settings": {
+      "enabled": true,
+      "state_file_name": "build_state.json",
+      "skip_completed": true,
+      "cleanup_incomplete": true,
+      "verify_done": true,
+      "flush_interval": 1
+    },
+    "memory_settings": {
+      "max_sequence_prep_mb": 8192,
+      "sequence_prep_num_workers": 8,
+      "inference_batch_size_gpu": 4,
+      "inference_batch_size_cpu": 4,
+      "cache_clear_interval_folders": 0,
+      "cache_clear_gc": false,
+      "cache_clear_cuda": false,
+      "cache_clear_ipc": false,
+      "disable_auto_micro_batch": false,
+      "force_no_chunking": false
+    },
+    "gpu_config": {
+      "use_multi_gpu": true,
+      "gpu_ids": [0, 1, 2, 3]
+    },
+    "micro_batch_enabled": true,
+    "micro_batch_size": 96
+  }
+}

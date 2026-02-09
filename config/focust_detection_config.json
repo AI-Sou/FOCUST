@@ -1,0 +1,173 @@
+{
+  "_metadata": {
+    "description": "FOCUST 检测系统配置文件",
+    "version": "1.0.0",
+    "created": "2025-12-11",
+    "scope": "系统级检测和评估配置"
+  },
+  "system_settings": {
+    "language": "zh_CN",
+    "default_mode": "enhanced",
+    "debug_mode": false
+  },
+  "detection": {
+    "hcp": {
+      "background_frames": 10,
+      "encoding_mode": "first_appearance_map",
+      "hue_range": 179,
+      "saturation": 255,
+      "bf_diameter": 9,
+      "bf_sigmaColor": 75.0,
+      "bf_sigmaSpace": 75.0,
+      "bg_consistency_multiplier": 3.0,
+      "noise_sigma_multiplier": 1.0,
+      "noise_min_std_level": 2.0,
+      "anchor_channel": "negative",
+      "temporal_consistency_enable": true,
+      "temporal_consistency_frames": 2,
+      "fog_suppression_enable": true,
+      "fog_sigma_ratio": 0.02,
+      "fog_sigma_cap": 80.0,
+      "enhanced_mode": true
+    },
+    "yolo_hcp": {
+      "model_path": "./model/yolo11x_best.pt",
+      "model_architecture": "yolo11x",
+      "confidence_threshold": 0.15,
+      "iou_threshold": 0.35,
+      "input_size": 3840,
+      "device": "auto",
+      "multi_scale_training": true,
+      "small_target_optimization": true,
+      "description": "HCP-YOLO检测器配置 - 3840x2160分辨率"
+    },
+    "yolo": {
+      "model_path": "./model/yolo11n.pt",
+      "confidence_threshold": 0.3,
+      "nms_threshold": 0.5,
+      "input_size": 640,
+      "device": "auto"
+    },
+    "sequence_processing": {
+      "target_size": 64,
+      "padding": 0.1,
+      "min_size": 32,
+      "normalize": true
+    },
+    "multiclass": {
+      "model_path": "./model/mutilfen.pth",
+      "device": "cuda:0",
+      "confidence_threshold": 0.5
+    },
+    "dataset_construction": {
+      "enable_multiclass_by_default": false,
+      "multiclass_model_path": "./model/mutilfen.pth",
+      "allow_multiclass_toggle": true,
+      "fallback_to_species_id": true
+    },
+    "integration": {
+      "use_hcp_yolo": true,
+      "hcp_yolo_priority": "primary",
+      "use_multiclass_refinement": true,
+      "fallback_to_multiclass": true,
+      "overlap_threshold": 0.5,
+      "detection_priority": "hcp_yolo_first"
+    },
+    "dataset": {
+      "hcp_yolo_dataset": "./dataset/hcp_yolo_dataset",
+      "source_dataset": "./dataset/colony_detection_dataset",
+      "auto_split_ratio": {
+        "train": 0.7,
+        "val": 0.2,
+        "test": 0.1
+      }
+    },
+    "auto_annotation": {
+      "hcp_yolo_model": "./hcp_yolo/models/best.pt",
+      "enable_visualization": true,
+      "output_format": "seqanno",
+      "batch_processing": true,
+      "recursive_search": false
+    }
+  },
+  "evaluation": {
+    "basic": {
+      "single_point_iou": 0.5,
+      "perform_iou_sweep": true,
+      "iou_sweep_start": 0.5,
+      "iou_sweep_end": 0.95,
+      "iou_sweep_step": 0.05
+    },
+    "matching_algorithm": {
+      "method": "center_distance",
+      "center_distance": {
+        "threshold_pixels": 20.0
+      },
+      "enable_dual_mode": false
+    },
+    "metrics": {
+      "enable_advanced_metrics": true,
+      "enable_per_class_analysis": true,
+      "enable_temporal_analysis": true,
+      "enable_detection_details": true,
+      "enable_confusion_matrix": true,
+      "enable_error_analysis": true
+    },
+    "visualization": {
+      "enable_visualization": true,
+      "visualization_dpi": 300,
+      "enable_svg_export": true,
+      "visualization_save_format": ["png", "jpg"],
+      "enable_sequence_visualization": true
+    },
+    "reports": {
+      "generate_html_report": true,
+      "generate_excel_report": true,
+      "generate_pr_curves": true,
+      "pr_curve_iou_thresholds": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
+      "generate_recommendations": true,
+      "evaluation_language": "zh_CN"
+    },
+    "data": {
+      "save_evaluation_data": true,
+      "save_chart_data": true,
+      "max_workers": 4
+    }
+  },
+  "paths": {
+    "datasets": "./dataset",
+    "models": "./model",
+    "logs": "./logs",
+    "temp": "./temp",
+    "outputs": "./output",
+    "hcp_yolo_module": "./hcp_yolo"
+  },
+  "class_labels": {
+    "en_us": {
+      "1": "S.aureus PCA",
+      "2": "S.aureus Baird-Parker",
+      "3": "E.coli PCA",
+      "4": "Salmonella PCA",
+      "5": "E.coli VRBA"
+    },
+    "zh_cn": {
+      "1": "金黄葡萄球菌PCA",
+      "2": "金黄葡萄球菌BairdParker",
+      "3": "大肠杆菌PCA",
+      "4": "沙门氏菌PCA",
+      "5": "大肠杆菌VRBA"
+    }
+  },
+  "auto_annotation": {
+    "hcp_yolo_model": "./hcp_yolo/models/best.pt",
+    "enable_visualization": true,
+    "output_format": "seqanno",
+    "batch_processing": true,
+    "recursive_search": false
+  },
+  "ui": {
+    "theme": "default",
+    "window_size": [1200, 800],
+    "auto_save_interval": 300
+  }
+}

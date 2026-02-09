@@ -1,0 +1,64 @@
+{
+  "comment": "FOCUST 二分类数据集构建配置文件",
+  "input_data": {
+    "source_directory": "./binary_data",
+    "comment_source": "源数据目录，包含正负样本子文件夹",
+    "positive_folder": "positive",
+    "negative_folder": "negative",
+    "comment_folders": "正样本和负样本文件夹名称",
+    "supported_formats": ["jpg", "jpeg", "png", "bmp", "tiff"],
+    "comment_formats": "支持的图像格式"
+  },
+  "output_settings": {
+    "output_directory": "./binary_dataset_output",
+    "comment_output": "输出目录",
+    "create_annotations": true,
+    "create_splits": true,
+    "comment_create": "输出设置"
+  },
+  "cli_mode": {
+    "interactive_mode": true,
+    "comment_interactive": "是否启用交互模式",
+    "auto_balance": true,
+    "comment_balance": "是否自动平衡数据集"
+  },
+  "dataset_settings": {
+    "train_ratio": 0.8,
+    "val_ratio": 0.1,
+    "test_ratio": 0.1,
+    "comment_split": "数据集分割比例",
+    "image_size": [224, 224],
+    "comment_size": "图像尺寸",
+    "augmentation": {
+      "enabled": true,
+      "horizontal_flip": true,
+      "vertical_flip": false,
+      "rotation": 15,
+      "brightness": 0.2,
+      "contrast": 0.2,
+      "comment_aug": "数据增强设置"
+    }
+  },
+  "processing": {
+    "num_workers": 4,
+    "batch_size": 32,
+    "parallel_processing": true,
+    "comment_processing": "处理设置"
+  },
+  "model_settings": {
+    "feature_extractor": "resnet18",
+    "comment_extractor": "特征提取器类型",
+    "pretrained": true,
+    "comment_pretrained": "是否使用预训练权重"
+  },
+  "quality_control": {
+    "min_image_size": [50, 50],
+    "max_image_size": [2000, 2000],
+    "check_corrupted": true,
+    "comment_quality": "质量控制设置"
+  },
+  "device": "cuda:0",
+  "language": "zh_CN",
+  "verbose": true,
+  "comment_general": "通用设置"
+}

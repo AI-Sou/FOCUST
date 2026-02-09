@@ -1,0 +1,24 @@
+{
+    "comment": "基础中心距离配置示例",
+    "mode": "single",
+    "input_path": "/path/to/your/test/data",
+    "output_path": "./output_center_distance",
+
+    "evaluation_settings": {
+        "matching_algorithm": "center_distance",
+        "center_distance_settings": {
+            "default_threshold": 15.0,
+            "enable_sweep": true,
+            "sweep_thresholds": [10, 15, 20, 25, 30, 40, 50]
+        },
+        "enable_dual_mode_comparison": false,
+        "comment": "使用15像素作为默认阈值，更严格的匹配标准"
+    },
+
+    "advanced_evaluation": {
+        "enable_pr_curves": true,
+        "center_distance_thresholds_for_pr": [10, 15, 20, 25, 30, 40, 50],
+        "enable_distance_analysis": true,
+        "comment": "PR曲线使用相同的阈值集合"
+    }
+}
