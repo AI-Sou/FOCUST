@@ -1,0 +1,414 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO Configuration for Adaptive High-Concurrency Mode",
+    "version": "2.2.0",
+    "target": "Maximum GPU utilization with adaptive resource management",
+    "gpu_config": "4x NVIDIA A800 80GB",
+    "total_gpu_memory": "320GB",
+    "optimization_target": "adaptive_throughput"
+  },
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true,
+    "processing_mode": "adaptive",
+    "memory_optimization": false,
+    "gpu_acceleration": true,
+    "adaptive_multithreading": {
+      "initial_threads": 8,
+      "max_threads": 16,
+      "auto_scale": true,
+      "thread_idle_timeout": 30,
+      "load_balance_strategy": "round_robin",
+      "dynamic_adjustment": {
+        "enable": true,
+        "monitor_interval": 10,
+        "cpu_threshold_high": 85,
+        "cpu_threshold_low": 30,
+        "memory_threshold_high": 80,
+        "memory_threshold_low": 40
+      }
+    }
+  },
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": 4160,
+    "confidence_threshold": 0.15,
+    "nms_threshold": 0.35,
+    "device": "cuda",
+    "multi_scale_training": true,
+    "small_target_optimization": true,
+    "architecture_specific": {
+      "yolo11n": {
+        "batch_size_multiplier": 8,
+        "learning_rate_multiplier": 1.2,
+        "depth_multiple": 0.33,
+        "width_multiple": 0.25,
+        "concurrent_streams": 4
+      },
+      "yolo11s": {
+        "batch_size_multiplier": 6,
+        "learning_rate_multiplier": 1.0,
+        "depth_multiple": 0.33,
+        "width_multiple": 0.5,
+        "concurrent_streams": 3
+      },
+      "yolo11m": {
+        "batch_size_multiplier": 4,
+        "learning_rate_multiplier": 0.8,
+        "depth_multiple": 0.67,
+        "width_multiple": 0.75,
+        "concurrent_streams": 2
+      },
+      "yolo11l": {
+        "batch_size_multiplier": 2,
+        "learning_rate_multiplier": 0.6,
+        "depth_multiple": 1.0,
+        "width_multiple": 1.0,
+        "concurrent_streams": 1
+      },
+      "yolo11x": {
+        "batch_size_multiplier": 1,
+        "learning_rate_multiplier": 0.5,
+        "depth_multiple": 1.33,
+        "width_multiple": 1.25,
+        "concurrent_streams": 1
+      }
+    }
+  },
+  "training": {
+    "epochs": 200,
+    "base_batch_size": 2,
+    "base_learning_rate": 0.00002,
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_with_restarts",
+    "warmup_epochs": 10,
+    "patience": 50,
+    "save_period": 20,
+    "gradient_accumulation_steps": 2,
+    "mixed_precision": true,
+    "compile_model": true,
+    "compile_mode": "max-autotune",
+    "compile_backend": "inductor",
+    "freeze_backbone_epochs": 30,
+    "layer_decay": 0.95,
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.0,
+    "label_smoothing": 0.05,
+    "ema_momentum": 0.9997,
+    "gradient_clip_norm": 0.5,
+    "deterministic": false,
+    "benchmark": true,
+    "cudnn_benchmark": true,
+    "distributed": {
+      "strategy": "FSDP",
+      "find_unused_parameters": false,
+      "gradient_as_bucket_view": true,
+      "static_graph": true,
+      "use_orig_params": false
+    },
+    "adaptive_training": {
+      "enable": true,
+      "dynamic_batch_size": true,
+      "batch_size_range": [1, 16],
+      "performance_threshold": 0.01,
+      "adjustment_interval": 10,
+      "target_gpu_utilization": 0.85
+    }
+  },
+  "multi_gpu": {
+    "enabled": true,
+    "world_size": 4,
+    "backend": "nccl",
+    "master_addr": "localhost",
+    "master_port": "23456",
+    "distributed_backend": "nccl",
+    "allreduce_bucket_size": 50,
+    "compression": true,
+    "gradient_predivide_factor": 1.0,
+    "use_cuda_ffi": true,
+    "adaptive_world_size": {
+      "enable": true,
+      "min_world_size": 2,
+      "max_world_size": 4,
+      "performance_monitor": true,
+      "auto_adjust": true
+    }
+  },
+  "concurrent_processing": {
+    "enabled": true,
+    "max_concurrent_streams": 4,
+    "stream_scheduling": "priority",
+    "load_balancing": "dynamic",
+    "resource_monitoring": {
+      "enable": true,
+      "monitor_interval": 5,
+      "gpu_memory_threshold": 0.9,
+      "cpu_threshold": 0.8,
+      "auto_scale": true
+    },
+    "batch_processing": {
+      "enable": true,
+      "batch_size_per_stream": 4,
+      "sync_frequency": 5,
+      "gradient_sync_strategy": "overlap"
+    }
+  },
+  "memory_optimization": {
+    "enable": true,
+    "gradient_checkpointing": true,
+    "cpu_offload": false,
+    "max_split_size_mb": 256,
+    "pin_memory": true,
+    "non_blocking_transfer": true,
+    "prefetch_factor": 4,
+    "persistent_workers": true,
+    "num_workers": 24,
+    "cache_dataset": true,
+    "memory_efficient_attention": true,
+    "dataset_processing": {
+      "max_memory_usage_gb": 80,
+      "chunk_size": 8,
+      "batch_size": 4,
+      "use_disk_cache": true,
+      "temp_dir": "./temp/hcp_cache",
+      "force_gc_interval": 5,
+      "memory_threshold_gb": 85,
+      "adaptive_loading": true,
+      "preload_strategy": "adaptive"
+    }
+  },
+  "data_augmentation": {
+    "enable": true,
+    "hsv_h": 0.02,
+    "hsv_s": 0.8,
+    "hsv_v": 0.5,
+    "degrees": 8.0,
+    "translate": 0.2,
+    "scale": 0.85,
+    "shear": 3.0,
+    "flipud": 0.0,
+    "fliplr": 0.6,
+    "mosaic": 0.8,
+    "mixup": 0.2,
+    "copy_paste": 0.15,
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.2, 2.0],
+    "auto_augment": "randaugment",
+    "auto_augment_m": 10,
+    "auto_augment_n": 2,
+    "random_erasing": 0.15,
+    "cutmix": 0.15,
+    "grid_mask": 0.3,
+    "gaussian_blur": 0.15,
+    "color_jitter": {
+      "brightness": 0.3,
+      "contrast": 0.3,
+      "saturation": 0.3,
+      "hue": 0.15
+    },
+    "adaptive_augmentation": {
+      "enable": true,
+      "difficulty_schedule": "linear",
+      "max_difficulty": 0.8,
+      "adjust_frequency": 10
+    }
+  },
+  "dataset": {
+    "path": "./dataset/source_sequences",
+    "output_path": "./dataset/hcp_yolo_dataset",
+    "split_ratio": {
+      "train": 0.7,
+      "val": 0.2,
+      "test": 0.1
+    },
+    "auto_balancing": true,
+    "cache_on_disk": true,
+    "preload": false,
+    "concurrent_loading": {
+      "enable": true,
+      "num_workers_per_stream": 6,
+      "prefetch_queue_size": 10,
+      "async_io": true,
+      "buffer_size": 100
+    },
+    "dataloader_config": {
+      "batch_size_multiplier": 8,
+      "num_workers": 48,
+      "persistent_workers": true,
+      "pin_memory": true,
+      "drop_last": false,
+      "collate_fn": "default",
+      "multiprocessing_context": "spawn"
+    }
+  },
+  "validation": {
+    "frequency": 3,
+    "save_predictions": true,
+    "compute_map": true,
+    "validation_iou_threshold": 0.3,
+    "use_half_precision": true,
+    "tta": false,
+    "ensemble_validation": false,
+    "concurrent_validation": {
+      "enable": true,
+      "batch_size_multiplier": 2,
+      "num_workers": 16
+    }
+  },
+  "export": {
+    "formats": ["onnx", "torchscript", "tensorrt"],
+    "optimize_for_mobile": false,
+    "quantize": true,
+    "tensorrt_config": {
+      "precision": "fp16",
+      "max_batch_size": 32,
+      "workspace_size": 2147483648
+    }
+  },
+  "logging": {
+    "save_plots": true,
+    "plot_confusion_matrix": true,
+    "plot_precision_recall": true,
+    "log_interval": 5,
+    "tensorboard": true,
+    "performance_monitoring": {
+      "enable": true,
+      "log_gpu_utilization": true,
+      "log_cpu_utilization": true,
+      "log_memory_usage": true,
+      "log_throughput": true,
+      "log_frequency": 10
+    },
+    "wandb": {
+      "enabled": false,
+      "project": "hcp-yolo-adaptive",
+      "entity": "focust"
+    },
+    "comet": {
+      "enabled": false
+    },
+    "mlflow": {
+      "enabled": false,
+      "tracking_uri": null
+    }
+  },
+  "inference": {
+    "batch_size": 8,
+    "device": "cuda",
+    "conf_threshold": 0.15,
+    "iou_threshold": 0.35,
+    "max_detections": 1000,
+    "use_nms": true,
+    "use_amp": true,
+    "compile_model": true,
+    "output_format": "json",
+    "concurrent_inference": {
+      "enable": true,
+      "max_concurrent_requests": 8,
+      "batch_size_per_stream": 2
+    }
+  },
+  "evaluation": {
+    "metrics": [
+      "mAP@0.5", "mAP@0.5:0.95", "precision", "recall", "f1",
+      "AP50", "AP75", "APs", "APm", "APl",
+      "AR@10", "AR@100", "AR1", "AR10", "AR100"
+    ],
+    "save_detailed_results": true,
+    "save_visualizations": true,
+    "iou_thresholds": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "per_class_analysis": true,
+    "error_analysis": true,
+    "speed_benchmark": true,
+    "memory_profiling": true,
+    "visualization_settings": {
+      "dpi": 300,
+      "font_size": 12,
+      "figure_size": [16, 12],
+      "save_formats": ["png", "pdf", "svg"],
+      "colormap": "viridis",
+      "use_custom_fonts": true
+    }
+  },
+  "advanced_training": {
+    "use_ema": true,
+    "ema_start_epoch": 1,
+    "use_swa": false,
+    "swa_start_epoch": 150,
+    "swa_lr": 0.00005,
+    "use_lookahead": false,
+    "use_rdrop": false,
+    "rdrop_alpha": 1.0,
+    "use_focal_loss": true,
+    "use_dice_loss": false,
+    "use_giou_loss": true,
+    "use_ciou_loss": false,
+    "use_diou_loss": false,
+    "loss_weights": {
+      "box": 7.5,
+      "cls": 0.5,
+      "obj": 1.0
+    },
+    "adaptive_loss": {
+      "enable": true,
+      "loss_weight_schedule": "dynamic",
+      "adjustment_factor": 0.1
+    }
+  },
+  "performance_profiling": {
+    "enabled": true,
+    "profile_memory": true,
+    "profile_flops": true,
+    "profile_time": true,
+    "profile_frequency": 25,
+    "concurrent_profiling": {
+      "enable": true,
+      "profile_per_stream": true
+    }
+  },
+  "focust_integration": {
+    "compatible": true,
+    "output_format": "seqanno",
+    "return_original_frames": true,
+    "maintain_sequence_structure": true,
+    "error_handling": "graceful",
+    "async_inference": true,
+    "concurrent_sequence_processing": {
+      "enable": true,
+      "max_concurrent_sequences": 4,
+      "sequence_batch_size": 2
+    }
+  },
+  "auto_tuning": {
+    "enable": true,
+    "target_metrics": ["mAP@0.5", "throughput"],
+    "tuning_frequency": 20,
+    "parameter_ranges": {
+      "learning_rate": [1e-5, 5e-4],
+      "batch_size": [1, 16],
+      "weight_decay": [1e-5, 1e-3]
+    },
+    "early_stopping": {
+      "enable": true,
+      "patience_factor": 0.2,
+      "min_delta": 0.001
+    }
+  }
+}

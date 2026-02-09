@@ -1,0 +1,385 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO Configuration for Colony Detection (4K Images)",
+    "version": "3.0.0-colony",
+    "target": "Optimized for small colony detection on 4K petri dish images",
+    "scenario": "Colony detection with severe adhesion and size variation",
+    "image_resolution": "4K (3840x2160 or higher)",
+    "optimization_target": "small_object_recall"
+  },
+
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true,
+    "comment": "HCP编码参数保持默认，时序信息已编码到单帧"
+  },
+
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": 640,
+    "comment": "640足够！因为SAHI推理时切片也是640，小目标在切片中保持原始大小（不被缩小）",
+
+    "confidence_threshold": 0.15,
+    "nms_threshold": 0.30,
+    "comment_nms": "严格NMS处理粘连，低置信度阈值提高小目标召回",
+
+    "device": "auto",
+    "multi_scale_training": true,
+    "small_target_optimization": true,
+
+    "architecture_specific": {
+      "yolo11n": {
+        "batch_size": 16,
+        "learning_rate": 0.0002,
+        "comment": "快速实验"
+      },
+      "yolo11s": {
+        "batch_size": 12,
+        "learning_rate": 0.00015
+      },
+      "yolo11m": {
+        "batch_size": 8,
+        "learning_rate": 0.0001
+      },
+      "yolo11l": {
+        "batch_size": 4,
+        "learning_rate": 0.00008
+      },
+      "yolo11x": {
+        "batch_size": 2,
+        "learning_rate": 0.00005,
+        "comment": "推荐用于生产，最佳精度"
+      }
+    }
+  },
+
+  "training": {
+    "epochs": 300,
+    "batch_size": 2,
+    "learning_rate": 0.00005,
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_warm_restart",
+    "warmup_epochs": 15,
+    "patience": 80,
+
+    "save_period": 25,
+    "gradient_accumulation_steps": 4,
+    "comment": "梯度累积模拟更大batch size",
+
+    "mixed_precision": true,
+    "comment": "FP16训练，节省内存",
+
+    "compile_model": true,
+    "compile_mode": "max-autotune",
+    "compile_backend": "inductor",
+    "comment": "PyTorch 2.0编译，加速训练",
+
+    "freeze_backbone_epochs": 10,
+    "comment": "仅冻结10epoch，让模型充分学习菌落特征",
+
+    "layer_decay": 0.95,
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.5,
+    "comment": "更强的Focal Loss处理背景/菌落不平衡",
+
+    "label_smoothing": 0.05,
+    "ema_momentum": 0.9999,
+    "gradient_clip_norm": 0.5,
+
+    "deterministic": false,
+    "benchmark": true,
+    "cudnn_benchmark": true
+  },
+
+  "multi_gpu": {
+    "enabled": false,
+    "world_size": 1,
+    "backend": "nccl",
+    "master_addr": "localhost",
+    "master_port": "23456"
+  },
+
+  "memory_optimization": {
+    "enable": true,
+    "gradient_checkpointing": true,
+    "comment": "4K图像训练必须启用，节省GPU内存",
+
+    "cpu_offload": false,
+    "max_split_size_mb": 512,
+    "pin_memory": true,
+    "non_blocking_transfer": true,
+    "prefetch_factor": 2,
+    "persistent_workers": true,
+    "num_workers": 8,
+    "cache_dataset": false,
+    "comment": "4K图像不适合内存缓存，使用RAM或disk缓存",
+
+    "memory_efficient_attention": true,
+
+    "dataset_processing": {
+      "max_memory_usage_gb": 20,
+      "chunk_size": 4,
+      "batch_size": 2,
+      "use_disk_cache": true,
+      "temp_dir": "./temp/hcp_cache",
+      "force_gc_interval": 5,
+      "memory_threshold_gb": 22
+    }
+  },
+
+  "data_augmentation": {
+    "enable": true,
+    "comment": "适度增强，避免破坏小目标和粘连关系",
+
+    "hsv_h": 0.01,
+    "hsv_s": 0.5,
+    "hsv_v": 0.3,
+    "comment": "适度的颜色变化",
+
+    "degrees": 2.0,
+    "translate": 0.05,
+    "scale": 0.3,
+    "shear": 1.0,
+    "comment": "轻微的几何变换",
+
+    "flipud": 0.0,
+    "fliplr": 0.5,
+
+    "mosaic": 0.3,
+    "comment": "降低Mosaic概率，保持真实分布",
+
+    "mixup": 0.0,
+    "comment": "禁用Mixup，会破坏粘连关系",
+
+    "copy_paste": 0.0,
+    "comment": "禁用，不适合粘连场景",
+
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.8, 1.5],
+    "comment": "缩小范围避免过度缩小丢失小目标",
+
+    "auto_augment": false,
+    "random_erasing": 0.05,
+    "cutmix": 0.0,
+    "grid_mask": 0.0,
+    "gaussian_blur": 0.05,
+    "comment": "轻微模糊模拟不同清晰度"
+  },
+
+  "dataset": {
+    "split_ratio": {
+      "train": 0.8,
+      "val": 0.15,
+      "test": 0.05
+    },
+    "auto_balancing": true,
+    "cache_on_disk": true,
+    "preload": false
+  },
+
+  "validation": {
+    "frequency": 5,
+    "save_predictions": true,
+    "compute_map": true,
+    "validation_iou_threshold": 0.5,
+    "use_half_precision": true,
+    "comment": "验证时使用FP16加速",
+
+    "tta": false,
+    "comment": "检测任务不使用TTA，会破坏边界框精度"
+  },
+
+  "inference": {
+    "batch_size": 1,
+    "device": "auto",
+    "conf_threshold": 0.15,
+    "iou_threshold": 0.30,
+    "max_detections": 2000,
+    "comment": "提高最大检测数，密集菌落场景",
+
+    "use_nms": true,
+    "use_amp": true,
+
+    "sahi": {
+      "enable": true,
+      "comment": "4K图像必须使用SAHI切片推理",
+
+      "slice_size": 640,
+      "overlap_ratio": 0.2,
+      "comment": "640切片，20%重叠平衡速度和精度",
+
+      "merge_mode": "nms",
+      "postprocess_type": "nmm",
+      "comment": "NMM适合小目标，减少重叠框"
+    },
+
+    "small_object_detection": {
+      "min_confidence": 0.10,
+      "min_size_threshold": 20,
+      "comment": "20像素最小阈值，提高小菌落召回"
+    }
+  },
+
+  "evaluation": {
+    "metrics": [
+      "mAP@0.5",
+      "mAP@0.5:0.95",
+      "precision",
+      "recall",
+      "f1",
+      "AP_small",
+      "AP_medium",
+      "AP_large",
+      "AR@100"
+    ],
+    "comment": "增加小目标AP指标",
+
+    "save_detailed_results": true,
+    "save_visualizations": true,
+    "iou_thresholds": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "per_class_analysis": true,
+    "small_target_analysis": true,
+    "comment": "专门分析小目标性能"
+  },
+
+  "advanced_training": {
+    "use_ema": true,
+    "ema_start_epoch": 1,
+    "comment": "EMA提高模型稳定性",
+
+    "use_swa": false,
+    "use_lookahead": false,
+    "use_rdrop": false,
+
+    "use_focal_loss": true,
+    "use_dice_loss": true,
+    "comment": "Dice Loss帮助处理重叠/粘连",
+
+    "use_giou_loss": true,
+    "use_ciou_loss": false,
+    "use_diou_loss": false,
+
+    "loss_weights": {
+      "box": 5.0,
+      "cls": 1.0,
+      "obj": 1.0,
+      "comment": "检测任务提高box权重"
+    },
+
+    "class_balanced_loss": false,
+    "comment": "单类别检测不需要类别平衡"
+  },
+
+  "model_specific": {
+    "detection_only": {
+      "comment": "仅检测模型配置 (单类别 colony)",
+      "num_classes": 1,
+      "class_names": ["colony"],
+      "conf_threshold": 0.15,
+      "nms_threshold": 0.30,
+      "focus": "recall",
+      "loss_weights": {
+        "box": 5.0,
+        "cls": 0.5,
+        "obj": 1.0
+      }
+    },
+
+    "detection_and_classification": {
+      "comment": "检测+分类模型配置 (多类别)",
+      "num_classes": 6,
+      "class_names": [
+        "S.aureus_PCA",
+        "S.aureus_BP",
+        "E.coli_PCA",
+        "Salmonella_PCA",
+        "E.coli_VRBA",
+        "background"
+      ],
+      "conf_threshold": 0.20,
+      "nms_threshold": 0.35,
+      "focus": "precision",
+      "loss_weights": {
+        "box": 3.0,
+        "cls": 2.0,
+        "obj": 1.0,
+        "comment": "分类任务提高cls权重"
+      },
+      "class_balanced_loss": true,
+      "label_smoothing": 0.1,
+      "comment": "更强的label smoothing防止过拟合",
+
+      "tta": true,
+      "comment": "分类任务使用TTA提高精度"
+    }
+  },
+
+  "export": {
+    "formats": ["onnx", "torchscript"],
+    "optimize_for_mobile": false,
+    "quantize": false,
+    "comment": "保留FP16精度，小目标量化会损失精度"
+  },
+
+  "logging": {
+    "save_plots": true,
+    "plot_confusion_matrix": true,
+    "plot_precision_recall": true,
+    "log_interval": 10,
+    "tensorboard": true
+  },
+
+  "focust_integration": {
+    "compatible": true,
+    "output_format": "seqanno",
+    "return_original_frames": true,
+    "maintain_sequence_structure": true,
+    "error_handling": "graceful"
+  },
+
+  "performance_tips": {
+    "training": [
+      "使用gradient_checkpointing节省内存",
+      "4K图像建议batch_size=1-2，用梯度累积",
+      "input_size=640即可，SAHI推理时切片也是640",
+      "冻结骨干网络不超过10个epoch",
+      "监控小目标AP_small指标"
+    ],
+    "inference": [
+      "4K图像推理必须使用SAHI切片（关键！）",
+      "SAHI切片保持小目标原始大小（不被缩小）",
+      "小目标置信度阈值可降至0.1",
+      "粘连场景NMS阈值设为0.3",
+      "密集场景max_detections设为2000+"
+    ],
+    "dataset": [
+      "负样本比例0.3-0.5",
+      "确保小菌落标注准确(>20px)",
+      "粘连区域需要精细标注",
+      "分类任务需要类别平衡"
+    ],
+    "sahi_explanation": [
+      "SAHI切片推理原理：4K图→切成多个640切片→每个切片独立推理→合并结果",
+      "关键：切片是裁剪不是缩小！小目标在切片中保持原始大小",
+      "例如：30像素小菌落在640切片中仍然是30像素，而不是被缩到5像素",
+      "因此训练在640，SAHI切片也是640，完美匹配"
+    ]
+  }
+}

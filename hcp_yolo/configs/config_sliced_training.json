@@ -1,0 +1,190 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO 配置 - 切片训练方案（方案B）",
+    "version": "3.1.0-sliced",
+    "target": "训练和推理完全一致，最优小目标检测性能",
+    "key_feature": "数据集预处理切片，训练推理完美匹配"
+  },
+
+  "dataset_preparation": {
+    "use_slicing": true,
+    "slice_size": 640,
+    "overlap_ratio": 0.2,
+    "comment": "关键：数据集构建时就切片，不是训练时切片"
+  },
+
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true
+  },
+
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": 640,
+    "comment": "640完美匹配，因为训练数据已经是640切片",
+
+    "confidence_threshold": 0.15,
+    "nms_threshold": 0.30,
+    "device": "auto",
+    "multi_scale_training": true,
+    "small_target_optimization": true
+  },
+
+  "training": {
+    "epochs": 300,
+    "batch_size": 16,
+    "comment": "切片数据集可以用更大batch_size（不是4K原图）",
+
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_warm_restart",
+    "warmup_epochs": 10,
+    "patience": 50,
+    "save_period": 25,
+
+    "gradient_accumulation_steps": 1,
+    "comment": "不需要梯度累积，batch_size可以更大",
+
+    "mixed_precision": true,
+    "compile_model": true,
+    "compile_mode": "max-autotune",
+    "freeze_backbone_epochs": 10,
+
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.0,
+    "label_smoothing": 0.05,
+    "ema_momentum": 0.9999,
+    "gradient_clip_norm": 0.5
+  },
+
+  "memory_optimization": {
+    "enable": false,
+    "comment": "切片数据集不需要梯度检查点，内存需求低"
+  },
+
+  "data_augmentation": {
+    "enable": true,
+    "comment": "切片数据集可以用标准增强",
+    "hsv_h": 0.015,
+    "hsv_s": 0.7,
+    "hsv_v": 0.4,
+    "degrees": 3.0,
+    "translate": 0.1,
+    "scale": 0.5,
+    "shear": 2.0,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 1.0,
+    "comment": "切片数据集可以使用正常Mosaic",
+    "mixup": 0.1,
+    "copy_paste": 0.1,
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.5, 2.0],
+    "auto_augment": true
+  },
+
+  "inference": {
+    "batch_size": 1,
+    "device": "auto",
+    "conf_threshold": 0.15,
+    "iou_threshold": 0.30,
+    "max_detections": 2000,
+
+    "sahi": {
+      "enable": false,
+      "comment": "关键：切片训练后，推理时不需要SAHI切片！直接推理即可"
+    },
+
+    "comment": "因为训练数据已经是切片，所以推理时直接对HCP图像（4K）resize到640即可",
+    "inference_mode": "standard",
+    "alternatives": "如果仍要用SAHI，也可以，但训练和推理已经一致了"
+  },
+
+  "evaluation": {
+    "metrics": ["mAP@0.5", "mAP@0.5:0.95", "recall", "precision", "f1", "AP_small"],
+    "iou_thresholds": [0.3, 0.5, 0.7]
+  },
+
+  "advanced_training": {
+    "use_ema": true,
+    "use_focal_loss": true,
+    "use_dice_loss": true,
+    "use_giou_loss": true,
+    "loss_weights": {
+      "box": 5.0,
+      "cls": 1.0,
+      "obj": 1.0
+    }
+  },
+
+  "workflow": {
+    "step1_dataset_building": {
+      "description": "构建切片数据集",
+      "code": "from hcp_yolo.dataset_builder import HCPSlicingDatasetBuilder",
+      "use": "builder = HCPSlicingDatasetBuilder(..., slice_size=640, overlap_ratio=0.2)",
+      "output": "hcp_dataset_sliced/ (包含640×640的切片)"
+    },
+
+    "step2_training": {
+      "description": "在切片数据集上训练",
+      "code": "trainer.train(dataset_path='./hcp_dataset_sliced/dataset.yaml')",
+      "input_size": 640,
+      "batch_size": 16,
+      "comment": "数据已经是切片，直接训练"
+    },
+
+    "step3_inference": {
+      "description": "推理时两种方式",
+      "method1": "标准推理：4K图像resize到640（推荐）",
+      "method2": "SAHI推理：4K图像切片到640（可选，与训练一致）"
+    }
+  },
+
+  "key_advantages": [
+    "✅ 训练和推理完全一致（640对640）",
+    "✅ 小目标在切片中保持原始大小",
+    "✅ 训练内存需求低（batch_size可以更大）",
+    "✅ 训练速度快（不需要处理4K图像）",
+    "✅ 最佳小目标检测性能"
+  ],
+
+  "trade_offs": [
+    "⚠️ 数据集变大（一张4K图变成~36张切片）",
+    "⚠️ 数据集构建时间增加",
+    "⚠️ 需要更多磁盘空间"
+  ],
+
+  "comparison": {
+    "方案A_1280训练": {
+      "input_size": 1280,
+      "batch_size": 2,
+      "memory": "~16GB",
+      "speed": "慢",
+      "consistency": "部分匹配（训练1280 vs SAHI 640）"
+    },
+    "方案B_切片训练": {
+      "input_size": 640,
+      "batch_size": 16,
+      "memory": "~8GB",
+      "speed": "快",
+      "consistency": "完全匹配（训练640切片 = 推理640切片）"
+    }
+  }
+}

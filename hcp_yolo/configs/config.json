@@ -1,0 +1,130 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO 完整配置文件 - 可独立使用也可被架构调用",
+    "version": "2.0.0",
+    "target": "完整训练+推理+评估系统"
+  },
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true
+  },
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": null,
+    "confidence_threshold": 0.15,
+    "nms_threshold": 0.35,
+    "device": "auto",
+    "multi_scale_training": true,
+    "small_target_optimization": true
+  },
+  "training": {
+    "epochs": 500,
+    "batch_size": 2,
+    "learning_rate": 0.00002,
+    "weight_decay": 0.00005,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_warm_restart",
+    "warmup_epochs": 20,
+    "patience": 150,
+    "save_period": 50,
+    "gradient_accumulation_steps": 8,
+    "mixed_precision": true,
+    "freeze_backbone_epochs": 100,
+    "layer_decay": 0.9,
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.0,
+    "label_smoothing": 0.1,
+    "ema_momentum": 0.9997
+  },
+  "multi_gpu": {
+    "enabled": false,
+    "world_size": 1,
+    "backend": "nccl",
+    "master_addr": "localhost",
+    "master_port": "23456"
+  },
+  "data_augmentation": {
+    "enable": true,
+    "hsv_h": 0.015,
+    "hsv_s": 0.7,
+    "hsv_v": 0.4,
+    "degrees": 3.0,
+    "translate": 0.1,
+    "scale": 0.5,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 1.0,
+    "mixup": 0.1,
+    "copy_paste": 0.1,
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.5, 2.0],
+    "auto_augment": true,
+    "random_erasing": 0.1,
+    "cutmix": 0.05,
+    "grid_mask": 0.1
+  },
+  "dataset": {
+    "split_ratio": {
+      "train": 0.8,
+      "val": 0.15,
+      "test": 0.05
+    },
+    "auto_balancing": true
+  },
+  "validation": {
+    "frequency": 5,
+    "save_predictions": true,
+    "compute_map": true,
+    "validation_iou_threshold": 0.3
+  },
+  "export": {
+    "formats": ["onnx", "torchscript"],
+    "optimize_for_mobile": false,
+    "quantize": false
+  },
+  "logging": {
+    "save_plots": true,
+    "plot_confusion_matrix": true,
+    "plot_precision_recall": true,
+    "log_interval": 10
+  },
+  "inference": {
+    "batch_size": 1,
+    "device": "auto",
+    "conf_threshold": 0.15,
+    "iou_threshold": 0.35,
+    "max_detections": 1000,
+    "use_nms": true,
+    "output_format": "json"
+  },
+  "evaluation": {
+    "metrics": ["mAP@0.5", "mAP@0.5:0.95", "precision", "recall", "f1"],
+    "save_detailed_results": true,
+    "save_visualizations": true,
+    "iou_thresholds": [0.3, 0.5, 0.7,0.9],
+    "per_class_analysis": true
+  },
+  "focust_integration": {
+    "compatible": true,
+    "output_format": "seqanno",
+    "return_original_frames": true,
+    "maintain_sequence_structure": true,
+    "error_handling": "graceful"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "models": [
+    {
+      "name": "yolo11n",
+      "pretrained": "hcp_yolo/models/yolo11n.pt",
+      "description": "Nano模型 - 最快速度",
+      "training": {
+        "epochs": 200,
+        "batch_size": 16,
+        "learning_rate": 0.001,
+        "imgsz": 640,
+        "patience": 50,
+        "optimizer": "AdamW",
+        "workers": 4
+      },
+      "enabled": true
+    },
+    {
+      "name": "yolo11s",
+      "pretrained": "hcp_yolo/models/yolo11s.pt",
+      "description": "Small模型 - 速度与精度平衡",
+      "training": {
+        "epochs": 200,
+        "batch_size": 12,
+        "learning_rate": 0.0008,
+        "imgsz": 640,
+        "patience": 50,
+        "optimizer": "AdamW",
+        "workers": 4
+      },
+      "enabled": true
+    },
+    {
+      "name": "yolo11m",
+      "pretrained": "hcp_yolo/models/yolo11m.pt",
+      "description": "Medium模型 - 推荐使用",
+      "training": {
+        "epochs": 300,
+        "batch_size": 8,
+        "learning_rate": 0.0005,
+        "imgsz": 640,
+        "patience": 80,
+        "optimizer": "AdamW",
+        "workers": 4
+      },
+      "enabled": true
+    },
+    {
+      "name": "yolo11l",
+      "pretrained": "hcp_yolo/models/yolo11l.pt",
+      "description": "Large模型 - 高精度",
+      "training": {
+        "epochs": 300,
+        "batch_size": 4,
+        "learning_rate": 0.0003,
+        "imgsz": 640,
+        "patience": 100,
+        "optimizer": "AdamW",
+        "workers": 2
+      },
+      "enabled": false
+    },
+    {
+      "name": "yolo11x",
+      "pretrained": "hcp_yolo/models/yolo11x.pt",
+      "description": "XLarge模型 - 最高精度",
+      "training": {
+        "epochs": 500,
+        "batch_size": 2,
+        "learning_rate": 0.0001,
+        "imgsz": 640,
+        "patience": 150,
+        "optimizer": "AdamW",
+        "workers": 2
+      },
+      "enabled": false
+    }
+  ],
+  "common_config": {
+    "dataset_path": "dataset/hcp_dataset/dataset.yaml",
+    "output_base_dir": "runs/multi_model_training",
+    "device": "auto",
+    "project": "hcp_yolo_multi"
+  },
+  "evaluation": {
+    "conf_threshold": 0.25,
+    "iou_thresholds": [0.1, 0.3, 0.5, 0.7, 0.9],
+    "center_distance_threshold": 50.0,
+    "use_center_distance": true,
+    "save_visualizations": true,
+    "split": "test"
+  },
+  "training_strategy": {
+    "mode": "sequential",
+    "parallel_jobs": 1,
+    "stop_on_error": false,
+    "cleanup_intermediate": false
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO Detection + Classification Model (Multi-Class)",
+    "version": "3.0.0-multiclass",
+    "target": "Optimized for colony detection and type classification",
+    "use_case": "Detect and classify colonies by type",
+    "key_focus": "High precision, class separation, balanced performance"
+  },
+
+  "model_type": "detection_and_classification",
+  "num_classes": 6,
+  "class_names": [
+    "S.aureus_PCA",
+    "S.aureus_BP",
+    "E.coli_PCA",
+    "Salmonella_PCA",
+    "E.coli_VRBA",
+    "background"
+  ],
+
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true
+  },
+
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": 640,
+    "confidence_threshold": 0.20,
+    "nms_threshold": 0.35,
+    "device": "auto",
+    "multi_scale_training": true,
+    "small_target_optimization": true
+  },
+
+  "training": {
+    "epochs": 400,
+    "comment": "分类任务需要更长训练时间",
+    "batch_size": 2,
+    "learning_rate": 0.00004,
+    "comment": "略低学习率稳定训练",
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_warm_restart",
+    "warmup_epochs": 20,
+    "patience": 100,
+    "save_period": 25,
+    "gradient_accumulation_steps": 4,
+    "mixed_precision": true,
+    "compile_model": true,
+    "compile_mode": "max-autotune",
+    "freeze_backbone_epochs": 10,
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.0,
+    "label_smoothing": 0.1,
+    "comment": "更强的label smoothing防止类别过拟合",
+    "ema_momentum": 0.9999,
+    "gradient_clip_norm": 0.5
+  },
+
+  "memory_optimization": {
+    "enable": true,
+    "gradient_checkpointing": true,
+    "max_split_size_mb": 512,
+    "pin_memory": true,
+    "num_workers": 8,
+    "use_disk_cache": true
+  },
+
+  "data_augmentation": {
+    "enable": true,
+    "comment": "分类任务可以使用更强的增强",
+    "hsv_h": 0.015,
+    "hsv_s": 0.6,
+    "hsv_v": 0.4,
+    "degrees": 3.0,
+    "translate": 0.08,
+    "scale": 0.4,
+    "shear": 1.5,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 0.4,
+    "mixup": 0.05,
+    "comment": "轻微Mixup帮助类别泛化",
+    "copy_paste": 0.0,
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.8, 1.5],
+    "gaussian_blur": 0.08,
+    "color_jitter": {
+      "brightness": 0.15,
+      "contrast": 0.15,
+      "saturation": 0.15,
+      "hue": 0.1,
+      "comment": "颜色抖动帮助区分颜色相似的菌落"
+    }
+  },
+
+  "inference": {
+    "batch_size": 1,
+    "device": "auto",
+    "conf_threshold": 0.20,
+    "comment": "更高置信度阈值提高精度",
+    "iou_threshold": 0.35,
+    "max_detections": 2000,
+    "use_nms": true,
+    "use_amp": true,
+    "comment": "使用切片数据集训练后，推荐标准推理",
+    "sahi": {
+      "enable": false,
+      "comment": "切片训练后推荐标准推理，如需完全一致性可用SAHI"
+    },
+    "tta": {
+      "enable": true,
+      "comment": "分类任务使用TTA"
+    }
+  },
+
+  "evaluation": {
+    "metrics": [
+      "mAP@0.5",
+      "mAP@0.5:0.95",
+      "precision",
+      "recall",
+      "f1",
+      "AP_small",
+      "AP_medium",
+      "AP_large",
+      "per_class_ap"
+    ],
+    "iou_thresholds": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "per_class_analysis": true,
+    "confusion_matrix": true,
+    "small_target_analysis": true
+  },
+
+  "advanced_training": {
+    "use_ema": true,
+    "use_focal_loss": true,
+    "use_dice_loss": true,
+    "use_giou_loss": true,
+    "loss_weights": {
+      "box": 3.0,
+      "cls": 2.0,
+      "obj": 1.0,
+      "comment": "分类任务：提高分类权重"
+    },
+    "class_balanced_loss": true,
+    "comment": "类别平衡损失，处理类别不平衡",
+    "class_weights": {
+      "S.aureus_PCA": 1.0,
+      "S.aureus_BP": 1.0,
+      "E.coli_PCA": 1.0,
+      "Salmonella_PCA": 1.0,
+      "E.coli_VRBA": 1.0,
+      "background": 0.1,
+      "comment": "降低背景类权重"
+    }
+  },
+
+  "dataset": {
+    "split_ratio": {"train": 0.8, "val": 0.15, "test": 0.05},
+    "auto_balancing": true,
+    "negative_ratio": 0.3,
+    "class_balance_strategy": "oversample",
+    "comment": "过采样少数类别"
+  },
+
+  "export": {
+    "formats": ["onnx", "torchscript"],
+    "optimize_for_mobile": false,
+    "quantize": false
+  },
+
+  "key_tips": {
+    "goal": "检测并区分菌落类型",
+    "threshold_strategy": "高置信度(0.20)，平衡精度和召回",
+    "nms_strategy": "中等NMS(0.35)，不过度抑制重叠菌落",
+    "input_size": "1280保持一致性",
+    "augmentation": "适度颜色/几何增强",
+    "training_focus": "per_class_AP和类别平衡",
+    "class_separation": "注意区分相似外观的菌落类型",
+    "tta": "推理时使用TTA提高分类精度"
+  }
+}

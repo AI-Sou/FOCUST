@@ -1,0 +1,151 @@
+{
+  "_metadata": {
+    "description": "HCP-YOLO Detection-Only Model (Single Class)",
+    "version": "3.0.0-detection",
+    "target": "Optimized for colony detection without classification",
+    "use_case": "Count colonies, detect all colonies regardless of type",
+    "key_focus": "High recall, small object detection, handle adhesion"
+  },
+
+  "model_type": "detection_only",
+  "num_classes": 1,
+  "class_names": ["colony"],
+
+  "hcp": {
+    "background_frames": 10,
+    "encoding_mode": "first_appearance_map",
+    "hue_range": 179,
+    "saturation": 255,
+    "bf_diameter": 9,
+    "bf_sigmaColor": 75.0,
+    "bf_sigmaSpace": 75.0,
+    "bg_consistency_multiplier": 3.0,
+    "noise_sigma_multiplier": 1.0,
+    "noise_min_std_level": 2.0,
+    "anchor_channel": "negative",
+    "temporal_consistency_enable": true,
+    "temporal_consistency_frames": 2,
+    "fog_suppression_enable": true,
+    "fog_sigma_ratio": 0.02,
+    "fog_sigma_cap": 80.0,
+    "preserve_resolution": true
+  },
+
+  "yolo": {
+    "model_architecture": "yolo11x",
+    "model_path": "./model/yolo11x.pt",
+    "input_size": 640,
+    "confidence_threshold": 0.15,
+    "nms_threshold": 0.30,
+    "device": "auto",
+    "multi_scale_training": true,
+    "small_target_optimization": true
+  },
+
+  "training": {
+    "epochs": 300,
+    "batch_size": 2,
+    "learning_rate": 0.00005,
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "cosine_annealing_warm_restart",
+    "warmup_epochs": 15,
+    "patience": 80,
+    "save_period": 25,
+    "gradient_accumulation_steps": 4,
+    "mixed_precision": true,
+    "compile_model": true,
+    "compile_mode": "max-autotune",
+    "freeze_backbone_epochs": 10,
+    "focal_loss_alpha": 0.25,
+    "focal_loss_gamma": 2.5,
+    "label_smoothing": 0.05,
+    "ema_momentum": 0.9999,
+    "gradient_clip_norm": 0.5
+  },
+
+  "memory_optimization": {
+    "enable": true,
+    "gradient_checkpointing": true,
+    "max_split_size_mb": 512,
+    "pin_memory": true,
+    "num_workers": 8,
+    "use_disk_cache": true
+  },
+
+  "data_augmentation": {
+    "enable": true,
+    "hsv_h": 0.01,
+    "hsv_s": 0.5,
+    "hsv_v": 0.3,
+    "degrees": 2.0,
+    "translate": 0.05,
+    "scale": 0.3,
+    "shear": 1.0,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 0.3,
+    "mixup": 0.0,
+    "copy_paste": 0.0,
+    "small_target_augmentation": true,
+    "multi_scale_range": [0.8, 1.5],
+    "gaussian_blur": 0.05
+  },
+
+  "inference": {
+    "batch_size": 1,
+    "device": "auto",
+    "conf_threshold": 0.15,
+    "iou_threshold": 0.30,
+    "max_detections": 2000,
+    "use_nms": true,
+    "use_amp": true,
+    "comment": "使用切片数据集训练后，推荐标准推理",
+    "sahi": {
+      "enable": false,
+      "comment": "切片训练后不需要SAHI，标准推理即可。如需完全一致性可用SAHI",
+      "note": "两种方式都可以：标准推理（快）或SAHI推理（慢但完全一致）"
+    }
+  },
+
+  "evaluation": {
+    "metrics": ["mAP@0.5", "mAP@0.5:0.95", "recall", "precision", "f1", "AP_small", "AR@100"],
+    "iou_thresholds": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "small_target_analysis": true
+  },
+
+  "advanced_training": {
+    "use_ema": true,
+    "use_focal_loss": true,
+    "use_dice_loss": true,
+    "use_giou_loss": true,
+    "loss_weights": {
+      "box": 5.0,
+      "cls": 0.5,
+      "obj": 1.0,
+      "comment": "检测任务：低分类权重，高定位权重"
+    }
+  },
+
+  "dataset": {
+    "split_ratio": {"train": 0.8, "val": 0.15, "test": 0.05},
+    "auto_balancing": true,
+    "negative_ratio": 0.3,
+    "comment": "30%负样本"
+  },
+
+  "export": {
+    "formats": ["onnx", "torchscript"],
+    "optimize_for_mobile": false,
+    "quantize": false
+  },
+
+  "key_tips": {
+    "goal": "检测所有菌落，不关心类型",
+    "threshold_strategy": "低置信度阈值(0.15)，高召回率",
+    "nms_strategy": "严格NMS(0.30)处理粘连",
+    "input_size": "1280-1600检测小目标",
+    "augmentation": "适度增强，保持真实分布",
+    "training_focus": "AP_small和Recall指标"
+  }
+}
