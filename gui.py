@@ -1949,11 +1949,11 @@ def run_dataset_construction_cli(config_path, input_dir=None, output_dir=None, n
                 'enable_multiclass': not no_multiclass,
                 'multiclass_settings': {
                     'enabled': not no_multiclass,
-                    'model_path': config.get('models', {}).get('multiclass_classifier', './model/mutilfen.pth'),
+                    'model_path': config.get('models', {}).get('multiclass_classifier', './model/multi_cat93.pth'),
                     'index_to_category_id_map': config.get('models', {}).get('multiclass_index_to_category_id_map', {})
                 },
                 'binary_settings': {
-                    'model_path': config.get('models', {}).get('binary_classifier', './model/erfen.pth')
+                    'model_path': config.get('models', {}).get('binary_classifier', './model/bi_cat98.pth')
                 },
                 'folder_processing': {
                     'process_all_subfolders': True,

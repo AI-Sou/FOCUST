@@ -1,39 +1,36 @@
-﻿# scripts/one_click/（Linux only）
+# scripts/one_click
 
-<p align="center">
-  <b>中文</b> | <a href="README.en.md">English</a>
-</p>
+中文文档。English documentation is available in `scripts/one_click/README.en.md`。
 
-本目录提供“一键式”驱动脚本：把多个 `scripts/00_*.sh` 串联起来执行。
+本目录提供一键式驱动脚本，将 `scripts/` 中的多个步骤串联执行，并在输出目录写入实际使用的 override 配置，以便复跑与审计。脚本仅面向 Linux，运行时会检测系统类型。
 
-设计原则：
-- **只在 Linux 上跑**（脚本会检测 `uname`）
-- **不替你猜路径**：你必须显式提供 `--input/--output/--weights` 等关键参数，避免跑错数据集
-- **可复现**：会把用到的 override 配置写到输出目录里，便于复跑与审计
+---
 
-运行方式（推荐，不依赖可执行权限）：
+## 运行方式
+
+推荐直接使用 bash 调用：
+
 ```bash
 bash scripts/one_click/00_hcp_pipeline.sh --help
 ```
 
 ---
 
-## 1) 一键跑通（HCP 经典线）
+## HCP 主链路一键运行
 
 ```bash
 bash scripts/one_click/00_hcp_pipeline.sh \
   --input /path/to/sequence_or_dataset_root \
   --output /path/to/output_dir \
-  --binary ./model/erfen.pth \
-  --multiclass ./model/mutilfen.pth
+  --binary ./model/bi_cat98.pth \
+  --multiclass ./model/multi_cat93.pth
 ```
 
-说明：
-- 该脚本会按需调用 `07_detect_hcp.sh` 或 `09_evaluate_dataset.sh`（取决于你传的是序列目录，还是包含 `annotations.json` / `annotations/annotations.json` 的数据集目录）。
+该脚本会根据输入目录形态选择单样本推理或数据集评估流程。
 
 ---
 
-## 2) 一键跑通（HCP‑YOLO 可选线）
+## HCP 编码加 YOLO 一键运行
 
 ```bash
 bash scripts/one_click/01_hcp_yolo_pipeline.sh \
@@ -42,11 +39,11 @@ bash scripts/one_click/01_hcp_yolo_pipeline.sh \
   --yolo ./model/yolo11n.pt
 ```
 
-可选：加上 `--multiclass ./model/mutilfen.pth --refine 1` 开启 YOLO 后细化。
+如需启用多分类细化，可传入 `--multiclass ./model/multi_cat93.pth --refine 1`。
 
 ---
 
-## 3) 完整串联（HCP：构建 → 训练 → 评估/报告）
+## HCP 全流程串联
 
 ```bash
 bash scripts/one_click/02_hcp_full_pipeline.sh \
@@ -57,7 +54,7 @@ bash scripts/one_click/02_hcp_full_pipeline.sh \
 
 ---
 
-## 4) 完整串联（HCP‑YOLO：构建 → 训练 → 评估/报告）
+## HCP 编码加 YOLO 全流程串联
 
 ```bash
 bash scripts/one_click/03_hcp_yolo_full_pipeline.sh \

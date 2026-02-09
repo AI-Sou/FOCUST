@@ -10,7 +10,7 @@ usage() {
   cat <<'EOF'
 Usage:
   01_hcp_yolo_pipeline.sh --input <sequence_dir_or_dataset_root> --output <out_dir> --yolo <weights.pt> \
-    [--multiclass <mutilfen.pth>] [--refine 0|1]
+    [--multiclass <multi_cat93.pth>] [--refine 0|1]
 
 Behavior:
 - If annotations exist under <input> -> runs dataset evaluation (09_evaluate_dataset.sh --engine hcp_yolo)

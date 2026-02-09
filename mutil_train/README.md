@@ -1,134 +1,98 @@
-﻿# mutil_train | Multi‑Class Classification (Species Identification)
+# mutil_train
 
-<p align="center">
-  <b>中文</b> | <a href="README.en.md">English</a>
-</p>
+中文文档。English documentation is available in `mutil_train/README.en.md`。
 
-`mutil_train/` 训练菌种 **多分类模型**，用于：
-- `engine=hcp`：对二分类过滤后的候选菌落进行菌种识别（主链路）
-- `engine=hcp_yolo`：可选对 YOLO 检测 bbox 做二次细化（refinement，常作为精度上限）
-
-This module trains the multi-class classifier used by both engines.
+`mutil_train/` 用于训练菌种多分类模型，对通过二分类过滤后的菌落候选进行五类识别。本模块既可服务 `engine=hcp` 的主链路，也可在 `engine=hcp_yolo` 中作为可选细化模块，对 YOLO 的检测结果进行类别校正。
 
 ---
 
-## 1) Dataset | 训练数据集（推荐结构）
+## 数据集
 
-多分类训练通常使用统一的 “images + annotations” 数据集结构：
+多分类训练建议使用仓库统一的时序数据集结构：
 
 ```text
 dataset_root/
   images/
-    seq_0001/...
+    <sequence_id>/
+      00001.jpg
+      00002.jpg
+      ...
   annotations/
     annotations.json
 ```
 
-其中 `annotations.json` 为 SeqAnno 兼容格式；GUI 的数据集构建与标注编辑器都围绕该格式工作。
+其中 `annotations.json` 为 COCO 风格并包含时序扩展字段。推荐使用 `gui.py` 与标注工具生成或校验该格式。
 
 ---
 
-## 2) Train | 训练
+## 训练
 
-在 `FOCUST/` 目录运行：
+在仓库根目录运行：
 
 ```bash
 python mutil_train/mutil_training.py mutil_train/mutil_config.json
 ```
 
-`mutil_train/mutil_config.json` 常见字段（以文件内为准）：
-- `training_dataset` / `annotations` / `image_dir`
-- `output_dir`
-- `device`：`auto` / `cpu` / `cuda:0`
-- `epochs` / `batch_size` / `learning_rate`
-- `sequence_length` / `max_seq_length`（与推理侧对齐）
+训练配置以 `mutil_train/mutil_config.json` 为准，常见字段包括训练集路径、输出目录、设备类型、训练轮数、批大小与序列长度控制。
 
 ---
 
-## 3) Outputs | 输出物与权重放置（离线优先）
+## 输出与权重放置
 
 训练输出通常包含：
-- `best_model.pth` / `latest_model.pth`
-- `classification_report.json`
-- 曲线图与日志
 
-建议将最终权重复制/软链接到 `FOCUST/model/`：
-- `FOCUST/model/mutilfen93.pth`
+- `best_model.pth` 与 `latest_model.pth`
+- `classification_report.json` 与混淆矩阵
+- 训练日志与曲线图
 
----
+为保证离线推理的稳定性，建议将最终权重放入 `model/` 目录，并在配置中指定路径。本仓库的 `model/` 目录提供的多分类权重文件为 `model/multi_cat93.pth`。
 
-## 4) Standalone Inference | 独立推理（脱离主架构）
-
-```bash
-python core/multiclass_inference.py \
-  --model model/mutilfen93.pth \
-  --input /path/to/sequence_or_roi_dir \
-  --device auto \
-  --topk 3
-```
-
-查看权重内保存的结构参数：
-
-```bash
-python core/multiclass_inference.py --model model/mutilfen93.pth --input . --info
-```
-
-可选：提供 “模型输出 index → 数据集 category_id” 映射（与主系统一致）：
-
-```bash
-python core/multiclass_inference.py \
-  --model model/mutilfen93.pth \
-  --input /path/to/sequence_or_roi_dir \
-  --index-map /path/to/index_to_category_id_map.json
-```
+如使用旧配置文件，更新 `models.multiclass_classifier` 指向本地权重路径即可。
 
 ---
 
-## 5) Use in Main Pipeline | 集成到主系统
+## 独立推理自检
 
-### 5.1 `engine=hcp`（主链路）
+多分类推理脚本可独立运行：
+
+```bash
+python core/multiclass_inference.py --model model/multi_cat93.pth --input /path/to/sequence_or_roi_dir --device auto --topk 3
+```
+
+查看权重中保存的结构参数：
+
+```bash
+python core/multiclass_inference.py --model model/multi_cat93.pth --input . --info
+```
+
+如需提供索引到类别 ID 的映射，可使用独立文件或直接使用检测配置中的 `models.multiclass_index_to_category_id_map`。
+
+---
+
+## 集成到主系统
+
+主系统通过 `models.multiclass_classifier` 与 `models.multiclass_index_to_category_id_map` 接入多分类模型。映射表的默认定义位于 `server_det.json` 与 `config/focust_config.json`。
+
+示例配置：
 
 ```json
 {
   "models": {
-    "multiclass_classifier": "./model/mutilfen93.pth",
+    "multiclass_classifier": "./model/multi_cat93.pth",
     "multiclass_index_to_category_id_map": { "0": 1, "1": 2, "2": 3, "3": 4, "4": 5 }
   },
   "pipeline": { "use_multiclass": true }
 }
 ```
 
-### 5.2 `engine=hcp_yolo`（可选细化）
-
-```json
-{
-  "engine": "hcp_yolo",
-  "models": { "multiclass_classifier": "./model/mutilfen93.pth" },
-  "inference": { "use_multiclass_refinement": true }
-}
-```
-
-关闭多分类（用于消融/排查）：
-
-```json
-{ "pipeline": { "use_multiclass": false } }
-```
-
 ---
 
-## 6) Model Architecture | 模型架构（与代码一致）
+## 当前类别体系
 
-多分类模型核心代码：`FOCUST/mutil_train/train/classification_model.py`
+默认类别标签如下，完整映射以 `server_det.json` 的 `class_labels` 为准：
 
-整体结构（概念图）：
-- 特征提取：`SimpleCNNFeatureExtractor`（深度可分离卷积 + 池化，输出 `feature_dim`）
-- 时序建模：两路 `CfCWrapper(AutoNCP)`（输出 `output_size_cfc_path1/2`）
-- 融合：`EnhancedAttentionFusion`（通过 CfC 生成注意力/融合权重）
-- 分类头：Linear → `num_classes`
-
----
-
-## 7) Notes | 注意事项
-
-- 权重必须为本地 `.pth`（默认离线）
-- 类别映射要与 `server_det.json` 的 `class_labels` / `multiclass_index_to_category_id_map` 一致
+1. 金黄葡萄球菌PCA
+2. 金黄葡萄球菌BairdParker
+3. 大肠杆菌PCA
+4. 沙门氏菌PCA
+5. 大肠杆菌VRBA

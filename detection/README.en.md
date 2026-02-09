@@ -1,64 +1,77 @@
-# Detection | Detection, Evaluation & Visualization
+# detection
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `detection/README.md`.
 
-`detection/` is FOCUST’s **detection/evaluation/visualization layer**, shared by both engines:
-- `engine=hcp`: HCP proposals → binary filter → multi-class classification
-- `engine=hcp_yolo`: HCP encoding → YOLO multi-class detection → (optional) multi-class refinement
-
-Both engines feed into the same evaluation and reporting modules (charts/HTML/Word/JSON).
-
-Shared system-level policies:
-- `edge_ignore_settings.enable`: ellipse ROI edge ignore (reduces edge false positives)
-- `small_colony_filter.*`: small-colony policy (label as class 0 and optionally skip refinement)
+`detection/` is the detection, evaluation, and visualization layer of FOCUST. It consumes unified outputs from both inference engines and produces deliverables that are comparable, summarizable, and report ready.
 
 ---
 
-## 1) Unified entrypoint
+## Engine outputs and unified evaluation
 
-Detection entry is at repo root:
-- `FOCUST/laptop_ui.py`
+FOCUST supports two engines:
 
-Common usage:
+- `engine=hcp` composed of HCP proposals, binary filtering, and multi class identification
+- `engine=hcp_yolo` composed of HCP temporal encoding and YOLO detection with optional multi class refinement
+
+Both engines feed the same evaluation and reporting modules and can produce charts, HTML, Word, and JSON outputs.
+
+---
+
+## System level policies
+
+Shared policies include:
+
+- `edge_ignore_settings.enable` for ellipse ROI edge ignoring to reduce edge false positives
+- `small_colony_filter` for small colony handling, such as assigning a dedicated class or skipping refinement
+
+---
+
+## Entry point
+
+The unified entry point is `laptop_ui.py` at the repository root.
+
+Launch the GUI:
 
 ```bash
-# GUI
 python laptop_ui.py
+```
 
-# CLI (with config)
+Launch the CLI with a configuration file:
+
+```bash
 python laptop_ui.py --config server_det.json
 ```
 
 ---
 
-## 2) Outputs
+## Outputs
 
-`laptop_ui.py` typically creates under `output_path`:
-- `evaluation_summary.json`: overall summary (precision/recall/F1, timings, etc.)
-- `successful_results_full.json`: per-sequence detailed results
-- `visualizations/`: charts (PNG/SVG depending on config)
-- `report.html` / `*.docx`: reports (depending on config)
+`laptop_ui.py` typically writes the following under `output_path`:
 
-Different modes/engines may add additional indexes (e.g. `hcp_yolo_eval/index.json`).
+- `evaluation_summary.json` overall summary including precision, recall, F1, and timing
+- `successful_results_full.json` per sequence detailed results
+- `visualizations/` chart outputs
+- `report.html` and docx report files
 
----
-
-## 3) Evaluation metrics (matching)
-
-FOCUST supports two matching styles (affects how you interpret PR/F1):
-- `center_distance`: center-distance matching (fits “center localization/counting”)
-- `iou`: IoU matching (fits bbox overlap)
-
-In reports, it’s recommended to either provide both, or clearly state which metric and threshold were used.
+Different modes and engines may add additional index files such as `hcp_yolo_eval/index.json`.
 
 ---
 
-## 4) Visualization & fonts
+## Evaluation matching
 
-Visualization tries to use the built-in font to avoid garbled CJK text:
-- Font: `assets/fonts/NotoSansSC-Regular.ttf`
-- Matplotlib: `core/cjk_font.py` (auto register)
-- OpenCV: `core/cjk_font.cv2_put_text` (Pillow-based CJK rendering)
+FOCUST supports two matching styles:
 
+- `center_distance` center distance matching for colony center localization and counting
+- `iou` IoU matching for bounding box overlap evaluation
+
+For experimental reporting, documenting the chosen matching policy and thresholds is recommended. When needed, export both policies for a clearer interpretation of PR and F1.
+
+---
+
+## Visualization and CJK fonts
+
+Visualization prefers the built in font to avoid missing glyphs:
+
+- font file at `assets/fonts/NotoSansSC-Regular.ttf`
+- Matplotlib registration via `core/cjk_font.py`
+- OpenCV CJK rendering via `core/cjk_font.cv2_put_text`

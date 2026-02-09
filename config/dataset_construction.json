@@ -9,8 +9,8 @@
   ],
   "output_path": "./dataset_output",
   "models": {
-    "binary_classifier": "./model/erfen.pth",
-    "multiclass_classifier": "./model/mutilfen.pth",
+    "binary_classifier": "./model/bi_cat98.pth",
+    "multiclass_classifier": "./model/multi_cat93.pth",
     "multiclass_index_to_category_id_map": {
       "0": 1,
       "1": 2,
@@ -76,7 +76,12 @@
   "gpu_config": {
     "_comment": "If use_multi_gpu=true and gpu_ids has >1 entries, dataset construction can process folders in parallel across GPUs.",
     "use_multi_gpu": true,
-    "gpu_ids": [0, 1, 2, 3]
+    "gpu_ids": [
+      0,
+      1,
+      2,
+      3
+    ]
   },
   "micro_batch_enabled": true,
   "micro_batch_size": 96,
@@ -90,7 +95,7 @@
     "enable_multiclass": false,
     "multiclass_settings": {
       "enabled": false,
-      "model_path": "./model/mutilfen.pth",
+      "model_path": "./model/multi_cat93.pth",
       "index_to_category_id_map": {
         "0": 1,
         "1": 2,
@@ -101,7 +106,7 @@
       "confidence_threshold": 0.5
     },
     "binary_settings": {
-      "model_path": "./model/erfen.pth",
+      "model_path": "./model/bi_cat98.pth",
       "confidence_threshold": 0.5
     },
     "folder_processing": {
@@ -123,7 +128,10 @@
       "val_ratio": 0.1,
       "test_ratio": 0.1,
       "annotation_format": "coco",
-      "image_size": [640, 640]
+      "image_size": [
+        640,
+        640
+      ]
     },
     "detection_parameters": {
       "confidence_threshold": 0.5,
@@ -133,8 +141,14 @@
     },
     "quality_control": {
       "check_image_corruption": true,
-      "min_image_size": [100, 100],
-      "max_image_size": [2000, 2000],
+      "min_image_size": [
+        100,
+        100
+      ],
+      "max_image_size": [
+        2000,
+        2000
+      ],
       "remove_duplicates": true
     },
     "device": "cuda:0",
@@ -189,7 +203,12 @@
     },
     "gpu_config": {
       "use_multi_gpu": true,
-      "gpu_ids": [0, 1, 2, 3]
+      "gpu_ids": [
+        0,
+        1,
+        2,
+        3
+      ]
     },
     "micro_batch_enabled": true,
     "micro_batch_size": 96

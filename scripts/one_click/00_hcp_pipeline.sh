@@ -9,7 +9,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  00_hcp_pipeline.sh --input <sequence_dir_or_dataset_root> --output <out_dir> [--binary <erfen.pth>] [--multiclass <mutilfen.pth>]
+  00_hcp_pipeline.sh --input <sequence_dir_or_dataset_root> --output <out_dir> [--binary <bi_cat98.pth>] [--multiclass <multi_cat93.pth>]
 
 Behavior:
 - If annotations exist under <input> -> runs dataset evaluation (09_evaluate_dataset.sh --engine hcp)
@@ -23,8 +23,8 @@ cd "$REPO_ROOT"
 
 INPUT=""
 OUTPUT=""
-BINARY="model/erfen.pth"
-MULTICLASS="model/mutilfen.pth"
+BINARY="model/bi_cat98.pth"
+MULTICLASS="model/multi_cat93.pth"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

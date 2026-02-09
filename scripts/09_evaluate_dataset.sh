@@ -10,7 +10,7 @@ usage() {
   cat <<'EOF'
 Usage:
   09_evaluate_dataset.sh --dataset <dataset_dir> --output <out_dir> \
-    [--engine hcp|hcp_yolo] [--binary <erfen.pth>] [--multiclass <mutilfen.pth>] [--yolo <weights.pt>] [--refine 0|1]
+    [--engine hcp|hcp_yolo] [--binary <bi_cat98.pth>] [--multiclass <multi_cat93.pth>] [--yolo <weights.pt>] [--refine 0|1]
 
 Notes:
 - Runs dataset evaluation via laptop_ui.py with mode=batch.
@@ -29,8 +29,8 @@ fi
 DATASET=""
 OUTPUT=""
 ENGINE="hcp"
-BINARY="model/erfen.pth"
-MULTICLASS="model/mutilfen.pth"
+BINARY="model/bi_cat98.pth"
+MULTICLASS="model/multi_cat93.pth"
 YOLO="model/yolo11n.pt"
 REFINE="0"
 

@@ -9,7 +9,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  07_detect_hcp.sh --input <sequence_folder_or_root> --output <out_dir> [--binary <erfen.pth>] [--multiclass <mutilfen.pth>]
+  07_detect_hcp.sh --input <sequence_folder_or_root> --output <out_dir> [--binary <bi_cat98.pth>] [--multiclass <multi_cat93.pth>]
 
 Notes:
 - Runs inference via the unified entrypoint:
@@ -28,8 +28,8 @@ fi
 
 INPUT=""
 OUTPUT=""
-BINARY="model/erfen.pth"
-MULTICLASS="model/mutilfen.pth"
+BINARY="model/bi_cat98.pth"
+MULTICLASS="model/multi_cat93.pth"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

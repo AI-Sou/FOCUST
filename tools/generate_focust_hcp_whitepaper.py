@@ -686,7 +686,7 @@ def _section_multiclass_dataset_prelabel_and_correction(doc: Document) -> None:
         "GUI 的“数据集构建”会启动后台 DetectionThread：\n"
         "（1）读取每个序列的帧路径（默认只取 `_back` 帧），并用 natsort 做时间排序；\n"
         "（2）运行 HpyerCoreProcessor 得到 initial_bboxes；\n"
-        "（3）若配置了二分类模型（erfen.pth），则用 EnhancedClassificationManager 过滤，得到 final_bboxes；"
+        "（3）若配置了二分类模型 bi_cat98.pth，则用 EnhancedClassificationManager 过滤，得到 final_bboxes；"
         "否则退化为仅使用 HCP 结果。\n"
         "（4）把序列帧复制到输出数据集目录，并把 final_bboxes 写入 annotations.json，类别 id 对应当前菌种（来自 folder）。"
     )

@@ -1,69 +1,57 @@
-﻿# GUI | 可视化界面
+# gui
 
-<p align="center">
-  <b>中文</b> | <a href="README.en.md">English</a>
-</p>
+中文文档。English documentation is available in `gui/README.en.md`。
 
-本目录提供 FOCUST 的 **可视化入口与组件**，目标是让训练/数据构建/检测/标注在一个工程里“可点、可跑、可复现”。
-
-This folder contains the GUI components and standalone editor for FOCUST.
+`gui/` 提供 FOCUST 的可视化界面与组件。该模块将数据构建、训练、检测评估与标注编辑集中在同一工程内，确保同一份配置在 GUI 与 CLI 下得到一致的行为与一致的输出。
 
 ---
 
-## 1) Entrypoints | 入口文件
+## 入口文件
 
-- `FOCUST/gui.py`
-  - 训练入口（二分类/多分类）
-  - 数据集构建（检测/分类/二分类数据集）
-  - 检测/评估（内嵌自 `laptop_ui.py`，首次进入 Tab 才加载，避免启动慢）
-  - 启动标注编辑器
-  - HCP‑YOLO 自动标注（SeqAnno 输出）
-- `FOCUST/laptop_ui.py`
-  - 独立检测 GUI / CLI（双引擎切换，评估与报告；适合服务器/批处理）
-- `FOCUST/gui/annotation_editor.py`
-  - 可视化标注编辑器（可脱离主系统独立运行）
+- `gui.py` 为一体化工作台入口，覆盖数据集构建、训练、检测评估、报告与工具入口
+- `laptop_ui.py` 为独立检测入口，既可作为 GUI 使用，也可作为 CLI 批处理运行
+- `gui/annotation_editor.py` 为标注编辑器，可独立运行
 
 ---
 
-## 2) Requirements | 依赖与环境
+## 依赖与环境
 
-- 需要：`PyQt5`
-- 服务器无显示器（headless）时：
-  - 检测建议用 CLI：`python laptop_ui.py --config server_det.json`
-  - 如需 GUI smoke test，可参考 `environment_setup/validate_installation.py --gui-smoke`
+GUI 依赖 PyQt5。若服务器无显示器，建议使用 `laptop_ui.py` 的 CLI 入口完成批处理与评估，并使用 `python environment_setup/validate_installation.py --gui-smoke` 验证 Qt 依赖是否完整。
 
 ---
 
-## 3) FOCUST Studio | 一体化 GUI（`gui.py`）
+## 一体化工作台
+
+启动：
 
 ```bash
 python gui.py
 ```
 
-常用工作流：
-1. **数据集构建**：将原始序列整理为训练所需的 images/annotations 结构
-2. **训练**：二分类（`bi_train`）与多分类（`mutil_train`）
-3. **标注**：启动 `gui/annotation_editor.py` 做 SeqAnno 标注与修订
-4. **自动标注**：调用 HCP‑YOLO 做初始标注，再人工修订（提升效率）
-   - 默认读取统一检测配置（`server_det.json` + `config/server_det.local.json` / `~/.focust/server_det.local.json`），保证与 `laptop_ui.py` 同参同权重
+典型工作流：
+
+1. 数据集构建，将原始时序序列整理为统一的 images 与 annotations 结构
+2. 训练二分类与多分类模型
+3. 启动标注编辑器进行标注与修订
+4. 自动标注流程使用 HCP 编码加 YOLO 生成初始标注，再进行人工修订
 
 ---
 
-## 4) Detection GUI / CLI | 检测与评估（`laptop_ui.py`）
+## 检测与评估
+
+独立启动检测界面：
 
 ```bash
-# GUI
 python laptop_ui.py
+```
 
-# CLI
+以模板配置运行 CLI：
+
+```bash
 python laptop_ui.py --config server_det.json
 ```
 
-说明：
-- 在 `gui.py` 中，“检测与评估”Tab 内嵌了同一套 `laptop_ui.py`（首次进入该 Tab 才加载）。
-- 如需全屏/单独窗口运行，可直接启动 `laptop_ui.py`（或在 `gui.py` 中点击“弹出”按钮）。
-
-引擎切换（配置文件中）：
+引擎通过 `engine` 字段切换：
 
 ```json
 { "engine": "hcp" }
@@ -73,35 +61,28 @@ python laptop_ui.py --config server_det.json
 { "engine": "hcp_yolo" }
 ```
 
-配置保存策略（GUI）：
-- 默认写入：`FOCUST/config/server_det.local.json`
-- 如需写入用户目录：`export FOCUST_SAVE_CONFIG_TO_USER=1`（写入 `~/.focust/server_det.local.json`）
+配置保存策略默认写入 `config/server_det.local.json`。如需写入用户目录，可设置 `FOCUST_SAVE_CONFIG_TO_USER=1` 并在 `~/.focust/` 下保存覆盖配置。
 
 ---
 
-## 5) Annotation Editor | 标注编辑器（独立运行）
+## 标注编辑器
 
 ```bash
 python gui/annotation_editor.py --lang zh_CN
 python gui/annotation_editor.py --folder /path/to/dataset_root --lang en
 ```
 
-特点：
-- 中英文切换（不依赖系统字体，项目自带中文字体）
-- 多序列浏览、快捷操作、撤销/重做、类别管理
-- 导出 SeqAnno 兼容 `annotations.json`
+编辑器支持多序列浏览、快捷操作与撤销重做，并可导出与系统兼容的 `annotations.json`。
 
 ---
 
-## 6) i18n & Fonts | 中英文与中文字体
+## 中英文与中文字体
 
-- GUI 语言：中文/English
-- 图像/图表中文渲染：`FOCUST/core/cjk_font.py`
-- 内置字体：`FOCUST/assets/fonts/NotoSansSC-Regular.ttf`
+中文渲染由 `core/cjk_font.py` 统一封装，字体文件位于 `assets/fonts/NotoSansSC-Regular.ttf`。
 
 ---
 
-## 7) Troubleshooting | 常见问题
+## 常见问题
 
-- `ImportError: No module named PyQt5`：安装 `PyQt5` 后重试
-- Linux headless Qt 插件报错：设置 `QT_QPA_PLATFORM=offscreen` 或改用 CLI
+- 缺少 PyQt5 依赖时，请按 `environment_setup/` 的安装流程补齐依赖
+- 无显示器环境出现 Qt 插件错误时，建议优先使用 CLI，并以 `--gui-smoke` 自检

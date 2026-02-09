@@ -1,70 +1,78 @@
-﻿# scripts/（Linux only）
+# scripts
 
-<p align="center">
-  <b>中文</b> | <a href="README.en.md">English</a>
-</p>
+中文文档。English documentation is available in `scripts/README.en.md`。
 
-本目录提供 **仅面向 Linux** 的 Bash 脚本，用于把 FOCUST 的完整流程按“可复现、可串联”的方式跑通。
+本目录提供面向 Linux 的 Bash 自动化脚本，用于将 FOCUST 的完整流程以可复现的方式串联执行。脚本按 `00_*.sh` 顺序编号，便于从数据集构建、训练、推理到评估与报告逐步推进。
 
-命名规则：所有脚本按 `00_XXX.sh` 顺序编号，便于从“数据集构建 → 训练 → 推理 → 评估/报告”一步步执行。
-
-> Windows 用户请使用 GUI（`gui.py` / `laptop_ui.py`）。这些脚本会主动检测 `uname`，非 Linux 直接退出，避免误用。
-
-## How to run | 运行方式
-
-- 推荐（无需可执行权限）：`bash scripts/00_env_check.sh ...`
-- 或赋予执行权限后运行：`chmod +x scripts/*.sh scripts/one_click/*.sh`
+Windows 与 macOS 场景建议使用 `gui.py` 与 `laptop_ui.py` 作为主入口。脚本会检测系统类型，在非 Linux 环境下会直接退出以避免误用。
 
 ---
 
-## 0) 两条流水线（第二条可选）
+## 运行方式
 
-### A. 经典 HCP（默认主线）
-1) 数据集构建（检测/分类数据准备）
-2) 二分类训练（菌落/非菌落过滤器）
-3) 多分类训练（菌种识别，可选）
-4) 推理（`engine=hcp`）
-5) 数据集评估 + 报告
+推荐直接用 bash 调用：
 
-### B. HCP‑YOLO（第二条可选主线）
-1) HCP‑YOLO 数据集构建（SeqAnno/COCO → YOLO）
-2) 训练 YOLO 多菌落模型（`.pt`）
-3) 推理（`engine=hcp_yolo`）
-4) （可选）多分类 `.pth` 细化（更慢但可能更准）
-5) 数据集评估 + 报告
+```bash
+bash scripts/00_env_check.sh
+```
 
----
+如需直接执行脚本，可授予可执行权限：
 
-## 1) 脚本清单（按编号顺序）
-
-- `00_env_check.sh`：环境自检（推荐先跑）
-- `01_build_dataset_hcp.sh`：HCP 检测/分类数据集构建（调用 `gui.py --dataset-construction`）
-- `02_build_dataset_binary.sh`：二分类数据集构建（输入应为检测数据集目录，需包含 `annotations/annotations.json` 与 `images/`；调用 `gui.py --binary-classification`）
-- `03_train_binary.sh`：二分类模型训练（`bi_train/bi_training.py`）
-- `04_train_multiclass.sh`：多分类模型训练（`mutil_train/mutil_training.py`）
-- `05_build_dataset_hcp_yolo.sh`：HCP‑YOLO 数据集构建（`python -m hcp_yolo build`）
-- `06_train_hcp_yolo.sh`：训练 YOLO 多菌落模型（`python -m hcp_yolo train`）
-- `07_detect_hcp.sh`：用 `engine=hcp` 做推理（调用 `laptop_ui.py`，自动写 override json）
-- `08_detect_hcp_yolo.sh`：用 `engine=hcp_yolo` 做推理（调用 `laptop_ui.py`，自动写 override json）
-- `09_evaluate_dataset.sh`：数据集评估（`mode=batch`，支持 `engine=hcp` / `engine=hcp_yolo`）
-- `10_report_docx.sh`：从评估输出生成 docx 报告（可选，依赖 `python-docx`）
+```bash
+chmod +x scripts/*.sh
+chmod +x scripts/one_click/*.sh
+```
 
 ---
 
-## 2) 一键式脚本（one_click/）
+## 两条流水线
 
-`scripts/one_click/` 提供把多个步骤串起来的“一键执行”脚本：
-- `00_*` / `01_*`：智能选择（单文件夹推理 vs 数据集评估）
-- `02_*` / `03_*`：完整串联（数据集构建 → 训练 → 评估/报告）
+### 经典 HCP 主链路
 
-入口见：`scripts/one_click/README.md`
+1. 数据集构建，生成统一的时序数据集结构
+2. 训练二分类模型，用于菌落与非菌落过滤
+3. 训练多分类模型，用于五类识别
+4. 使用 `engine=hcp` 推理
+5. 数据集评估与报告生成
+
+### HCP 编码加 YOLO 可选链路
+
+1. 将时序标注数据转换为 YOLO 所需的数据格式
+2. 训练 YOLO 多菌落检测模型
+3. 使用 `engine=hcp_yolo` 推理
+4. 使用多分类模型对结果进行可选细化
+5. 数据集评估与报告生成
 
 ---
 
-## 3) 统一约定（重要）
+## 脚本清单
 
-- **Linux only**：脚本开头会检查 `uname -s == Linux`，否则退出。
-- **工作目录**：脚本会自动 `cd` 到仓库根目录（`FOCUST/`）。
-- **Python 解释器**：默认使用 `python3`，可用环境变量覆盖：
-  - `PYTHON=/path/to/python3 ./scripts/00_env_check.sh`
-- **离线优先**：权重默认从 `FOCUST/model/` 读取；如需自定义请传参或改变量。
+- `00_env_check.sh` 环境自检
+- `01_build_dataset_hcp.sh` 构建 HCP 推理与分类训练所需数据集
+- `02_build_dataset_binary.sh` 构建二分类训练数据集
+- `03_train_binary.sh` 二分类模型训练
+- `04_train_multiclass.sh` 多分类模型训练
+- `05_build_dataset_hcp_yolo.sh` 构建 HCP 编码加 YOLO 数据集
+- `06_train_hcp_yolo.sh` 训练 YOLO 模型
+- `07_detect_hcp.sh` 使用 `engine=hcp` 推理
+- `08_detect_hcp_yolo.sh` 使用 `engine=hcp_yolo` 推理
+- `09_evaluate_dataset.sh` 数据集评估
+- `10_report_docx.sh` 生成 docx 报告
+
+更细的参数说明以各脚本开头的 usage 文档为准。
+
+---
+
+## one_click
+
+`scripts/one_click/` 提供将多个步骤串联的一键式脚本，适合在服务器上快速复现与批处理。入口文档见 `scripts/one_click/README.md`。
+
+---
+
+## 统一约定
+
+- 仅支持 Linux，脚本会检查系统类型并在不满足条件时退出
+- 脚本会自动切换到仓库根目录作为工作目录
+- 默认使用 `python3`，可通过环境变量 `PYTHON` 指定解释器路径
+- 系统默认离线运行，脚本默认从 `model/` 目录读取本地权重
+

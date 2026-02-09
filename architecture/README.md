@@ -1,64 +1,52 @@
-﻿# Architecture Scripts | 架构辅助脚本（离线/批量/研究）
+# architecture
 
-<p align="center">
-  <b>中文</b> | <a href="README.en.md">English</a>
-</p>
+中文文档。English documentation is available in `architecture/README.en.md`。
 
-`architecture/` 收纳 **离线脚本**：用于批量检测、评估、报告生成与研究分析。
-它们不会影响 `gui.py` / `laptop_ui.py` 的主流程启动，但更适合：
-
-- 服务器批量跑实验（无需 GUI）
-- 生成统一格式的评估索引与报告
-- 对 HCP‑YOLO 进行独立评估与对比
+`architecture/` 收纳离线脚本，用于批量检测、评估、报告生成与研究分析。这些脚本不影响 `gui.py` 与 `laptop_ui.py` 的主入口，但更适合在服务器环境进行批量实验与对比分析。
 
 ---
 
-## 1) Quick Index | 脚本索引
+## 脚本索引
 
-| Script | Purpose | Typical usage |
-|---|---|---|
-| `hcp_yolo_batch_detect.py` | HCP‑YOLO 批量检测（脱离 GUI） | 批量跑序列文件夹并输出可视化/JSON |
-| `hcp_yolo_eval.py` | HCP‑YOLO 评估与报告 | 对 SeqAnno 数据集做 center-distance/IoU 双口径评估 |
-| `enhanced_hcp_dataset_processor.py` | HCP‑YOLO 数据集处理增强 | 批量处理/清洗 HCP 数据集结构 |
-| `sequence_level_evaluator.py` | 序列级评估（基础） | 轻量评估（研究用） |
-| `sequence_level_evaluator_enhanced.py` | 序列级评估（增强） | 更丰富的汇总与导出（研究用） |
-| `docx_writer.py` | 无依赖 docx 写入器 | 为离线环境生成最小 Word 报告 |
-| `update_class_names.py` | 类别名称批量更新 | 修订 `class_labels` 映射或数据集类别名称 |
-| `usage_example_code.py` | 示例代码 | 复制/改造为你自己的批量脚本 |
+| 脚本 | 用途 |
+|---|---|
+| `architecture/hcp_yolo_batch_detect.py` | HCP 编码加 YOLO 的批量检测脚本 |
+| `architecture/hcp_yolo_eval.py` | HCP 编码加 YOLO 的评估与报告脚本 |
+| `architecture/enhanced_hcp_dataset_processor.py` | HCP 数据集结构处理与清洗 |
+| `architecture/sequence_level_evaluator.py` | 序列级评估基础版本 |
+| `architecture/sequence_level_evaluator_enhanced.py` | 序列级评估增强版本 |
+| `architecture/docx_writer.py` | 最小依赖的 docx 写入器 |
+| `architecture/update_class_names.py` | 类别名称批量更新 |
+| `architecture/usage_example_code.py` | 批量脚本示例代码 |
 
 ---
 
-## 2) HCP‑YOLO Batch Detect（`hcp_yolo_batch_detect.py`）
+## 批量检测
 
-典型用法（示意）：
+如需在不启动 `laptop_ui.py` 的情况下批量处理序列目录，可使用：
 
 ```bash
 python architecture/hcp_yolo_batch_detect.py --help
 ```
 
-你可以用它在不启动 `laptop_ui.py` 的情况下，直接批量检测序列目录并输出：
-- 检测 JSON（bbox/class/conf）
-- 可视化图片（可选）
+脚本通常会输出检测 JSON 与可选可视化结果，具体输出格式以参数说明与代码为准。
 
 ---
 
-## 3) HCP‑YOLO Evaluation（`hcp_yolo_eval.py`）
+## 评估与报告
 
-典型用法（示意）：
+HCP 编码加 YOLO 的评估入口为：
 
 ```bash
 python architecture/hcp_yolo_eval.py --help
 ```
 
-支持：
-- center-distance / IoU 双口径评估
-- 输出评估索引、summary、Word/HTML（按配置）
+该脚本支持中心距离与 IoU 两类匹配口径，并可导出评估索引与报告文件。输出行为以配置与参数为准。
 
 ---
 
-## 4) Notes | 注意事项
+## 注意事项
 
-- 主系统入口仍是：
-  - 训练/数据构建 GUI：`python gui.py`
-  - 检测 GUI/CLI：`python laptop_ui.py`
-- 中文字体统一由 `core/cjk_font.py` 提供，避免图表中文乱码（无需系统字体）。
+- 主系统入口为 `python gui.py` 与 `python laptop_ui.py`
+- 中文字体由 `core/cjk_font.py` 提供，默认无需依赖系统字体
+

@@ -9,7 +9,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  08_detect_hcp_yolo.sh --input <sequence_folder_or_root> --output <out_dir> --yolo <weights.pt> [--multiclass <mutilfen.pth>] [--refine 0|1]
+  08_detect_hcp_yolo.sh --input <sequence_folder_or_root> --output <out_dir> --yolo <weights.pt> [--multiclass <multi_cat93.pth>] [--refine 0|1]
 
 Notes:
 - Runs inference via the unified entrypoint:

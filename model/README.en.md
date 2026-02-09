@@ -1,63 +1,65 @@
-# Models (Offline)
+# model
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `model/README.md`.
 
-This directory stores **local weight files**. FOCUST is offline-first and does not download weights automatically by default.
+This directory stores local model weight files. FOCUST is designed for offline delivery and does not download weights automatically, so keeping all weights under `model/` is the most stable deployment approach.
 
 ---
 
-## 1) Common weights
+## Weights shipped with this repository
 
-| File | Type | Used by |
-|---|---|---|
-| `erfen.pth` | Binary classifier | `engine=hcp` binary filtering |
-| `mutilfen93.pth` | Multi-class classifier | `engine=hcp` multi-class / `engine=hcp_yolo` refinement |
-| `yolo11n.pt` / `yolo11s.pt` / ... | YOLO detector | `engine=hcp_yolo` |
+This repository includes the following weights under `model/`:
+
+- `bi_cat98.pth` for binary filtering in `engine=hcp`
+- `multi_cat93.pth` for multi class identification in `engine=hcp` and optional refinement in `engine=hcp_yolo`
+- `yolo11n.pt`, `yolo11s.pt`, `yolo11m.pt`, `yolo11l.pt`, `yolo11x.pt` for YOLO detection in `engine=hcp_yolo`
+
+If an older configuration is used, update `models.binary_classifier` and `models.multiclass_classifier` to point to the local weight paths.
 
 ---
 
-## 2) Configure weights in `server_det.json`
+## Configure weights in detection configs
+
+Using `server_det.json` as the template, specify local weight paths.
+
+Example for `engine=hcp`:
 
 ```json
 {
   "engine": "hcp",
   "models": {
-    "binary_classifier": "./model/erfen.pth",
-    "multiclass_classifier": "./model/mutilfen93.pth"
+    "binary_classifier": "./model/bi_cat98.pth",
+    "multiclass_classifier": "./model/multi_cat93.pth"
   }
 }
 ```
+
+Example for `engine=hcp_yolo`:
 
 ```json
 {
   "engine": "hcp_yolo",
   "models": {
     "yolo_model": "./model/yolo11n.pt",
-    "multiclass_classifier": "./model/mutilfen93.pth"
+    "multiclass_classifier": "./model/multi_cat93.pth"
   }
 }
 ```
 
 ---
 
-## 3) Notes
+## Notes
 
-- Keeping weights under `FOCUST/model/` is the most stable approach for offline/intranet deployments.
-- `models.yolo_models` (a dict) is used for multi-weight comparison/ablation (see `tools/run_multi_yolo_eval.sh`).
-- If you use your own class taxonomy, make sure to update:
-  - `server_det.json` → `class_labels`
-  - `server_det.json` → `models.multiclass_index_to_category_id_map`
-  - (optional) any mapping files used by your workflow
+- `models.yolo_models` can be used for multi weight comparison via `tools/run_multi_yolo_eval.sh`
+- if you change the class taxonomy, update `class_labels` and `models.multiclass_index_to_category_id_map` in `server_det.json`
+- if your workflow relies on `class_mapping.json`, keep it consistent with the label mapping
 
 ---
 
-## 4) Standalone checks
+## Standalone checks
 
 ```bash
-python core/binary_inference.py --model model/erfen.pth --input . --info
-python core/multiclass_inference.py --model model/mutilfen93.pth --input . --info
+python core/binary_inference.py --model model/bi_cat98.pth --input . --info
+python core/multiclass_inference.py --model model/multi_cat93.pth --input . --info
 python -m hcp_yolo --help
 ```
-

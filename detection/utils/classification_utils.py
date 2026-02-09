@@ -473,7 +473,7 @@ class ClassificationManager:
                 }
                 # 【关键修复】确保多分类模型num_classes正确设置
                 if model_type == 'multiclass':
-                    # mutilfen.pth模型缺少num_classes参数，需要手动设置为5
+                    # 部分多分类权重缺少 num_classes 参数，需要在推理侧显式设置为 5
                     if 'num_classes' not in params_source:
                         model_args['num_classes'] = 5
                         self._update_status("修复：为多分类模型手动设置num_classes=5")

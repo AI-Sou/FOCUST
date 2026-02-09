@@ -1,67 +1,57 @@
-# GUI | Visual Interfaces
+# gui
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `gui/README.md`.
 
-This directory provides FOCUST’s **GUI entrypoints and components**, so training/dataset construction/detection/annotation can be done in one project in a clickable and reproducible way.
+`gui/` contains the visual interfaces and GUI components of FOCUST. It consolidates dataset construction, training, detection and evaluation, and annotation editing in one project while keeping configuration and outputs consistent between GUI and CLI.
 
 ---
 
-## 1) Entrypoints
+## Entrypoints
 
-- `FOCUST/gui.py`
-  - Training (binary / multi-class)
-  - Dataset construction (detection/classification/binary datasets)
-  - Detection & evaluation (embedded from `laptop_ui.py`, lazy‑loaded on first open)
-  - Launch annotation editor
-  - HCP‑YOLO auto-annotation (SeqAnno output)
-- `FOCUST/laptop_ui.py`
-  - Standalone detection GUI/CLI (dual engines, evaluation & reports; best for servers/batch)
-- `FOCUST/gui/annotation_editor.py`
-  - Standalone visual annotation editor
+- `gui.py` is the all in one studio entrypoint for dataset construction, training, detection and evaluation, reporting, and utilities
+- `laptop_ui.py` is the standalone detection entrypoint and supports both GUI usage and CLI batch execution
+- `gui/annotation_editor.py` is the standalone annotation editor
 
 ---
 
-## 2) Requirements
+## Requirements
 
-- Requires: `PyQt5`
-- On headless servers:
-  - Use CLI for detection: `python laptop_ui.py --config server_det.json`
-  - For a GUI smoke test, see `environment_setup/validate_installation.py --gui-smoke`
+The GUI requires PyQt5. On servers without a display, using the CLI entrypoint provided by `laptop_ui.py` and validating Qt dependencies using `python environment_setup/validate_installation.py --gui-smoke` is recommended.
 
 ---
 
-## 3) FOCUST Studio (all‑in‑one GUI): `gui.py`
+## Studio GUI
+
+Launch:
 
 ```bash
 python gui.py
 ```
 
 Typical workflow:
-1. **Dataset construction**: convert raw sequences into the unified `images/` + `annotations/` structure
-2. **Training**: binary (`bi_train`) and multi-class (`mutil_train`)
-3. **Annotation**: open `gui/annotation_editor.py` for SeqAnno annotation/review
-4. **Auto-annotation**: use HCP‑YOLO to generate initial annotations and then refine manually
-   - The tool reads the unified detection config (`server_det.json` + local/user overrides) to stay consistent with `laptop_ui.py` (same params/weights)
+
+1. dataset construction to create the unified `images` and `annotations` structure
+2. training for the binary and multi class models
+3. annotation review and correction using the annotation editor
+4. auto annotation using the HCP encoding plus YOLO tooling followed by manual refinement
 
 ---
 
-## 4) Detection GUI / CLI (`laptop_ui.py`)
+## Detection and evaluation
+
+Launch the standalone detection UI:
 
 ```bash
-# GUI
 python laptop_ui.py
+```
 
-# CLI
+Run the CLI with the template configuration:
+
+```bash
 python laptop_ui.py --config server_det.json
 ```
 
-Notes:
-- The “Detection & evaluation” tab in `gui.py` embeds the same `laptop_ui.py` UI (lazy‑loaded to keep startup fast).
-- For full-screen / separate window usage, run `laptop_ui.py` directly (or use the “Pop out” button in `gui.py`).
-
-Engine switch (in config):
+Switch engines via the `engine` field:
 
 ```json
 { "engine": "hcp" }
@@ -71,35 +61,28 @@ Engine switch (in config):
 { "engine": "hcp_yolo" }
 ```
 
-GUI config save policy:
-- Default: `FOCUST/config/server_det.local.json`
-- Save to user dir: `export FOCUST_SAVE_CONFIG_TO_USER=1` (writes `~/.focust/server_det.local.json`)
+Configuration changes are saved to `config/server_det.local.json` by default. To save into the user directory, set `FOCUST_SAVE_CONFIG_TO_USER=1` and store the override under `~/.focust/`.
 
 ---
 
-## 5) Annotation editor (standalone)
+## Annotation editor
 
 ```bash
 python gui/annotation_editor.py --lang zh_CN
 python gui/annotation_editor.py --folder /path/to/dataset_root --lang en
 ```
 
-Features:
-- Chinese/English UI (no system fonts required)
-- Multi-sequence browsing, shortcuts, undo/redo, class management
-- Exports SeqAnno-compatible `annotations.json`
+The editor supports multi sequence browsing, shortcuts, undo and redo, class management, and exports a system compatible `annotations.json`.
 
 ---
 
-## 6) i18n & fonts
+## CJK fonts
 
-- GUI language: 中文/English
-- CJK rendering (images/charts): `core/cjk_font.py`
-- Built-in font: `assets/fonts/NotoSansSC-Regular.ttf`
+CJK rendering is handled by `core/cjk_font.py`. The bundled font file is `assets/fonts/NotoSansSC-Regular.ttf`.
 
 ---
 
-## 7) Troubleshooting
+## Troubleshooting
 
-- `ImportError: No module named PyQt5`: install PyQt5 and retry
-- Linux headless Qt plugin errors: set `QT_QPA_PLATFORM=offscreen` or use CLI
+- missing PyQt5: follow the setup steps under `environment_setup/`
+- Qt plugin errors on headless servers: prefer the CLI entrypoint and validate using `--gui-smoke`

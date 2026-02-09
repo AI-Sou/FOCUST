@@ -11,8 +11,8 @@
   "engine": "hcp",
   "comment_engine": "推理引擎: hcp（FOCUST222: HCP+二分类+多分类）或 hcp_yolo（FOCUST111: HCP编码+YOLO多分类，可选多分类细化）",
   "models": {
-    "binary_classifier": "F:/pppfocust/FOCUST/model/erfen.pth",
-    "multiclass_classifier": "F:/pppfocust/FOCUST/model/mutilfen.pth",
+    "binary_classifier": "F:/pppfocust/FOCUST/model/bi_cat98.pth",
+    "multiclass_classifier": "F:/pppfocust/FOCUST/model/multi_cat93.pth",
     "yolo_model": "./model/yolo11n.pt",
     "comment_yolo_model": "HCP-YOLO 本地权重(.pt)。当 engine=hcp_yolo 时必填；默认离线不自动下载。",
     "yolo_models": {

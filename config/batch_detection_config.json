@@ -9,8 +9,8 @@
   "language": "en",
   "compatibility_mode": true,
   "models": {
-    "binary_classifier": "./model/erfen.pth",
-    "multiclass_classifier": "./model/mutilfen.pth"
+    "binary_classifier": "./model/bi_cat98.pth",
+    "multiclass_classifier": "./model/multi_cat93.pth"
   },
   "multiclass_id_map": {
     "0": 1,

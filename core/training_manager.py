@@ -269,17 +269,17 @@ class ModelPathManager:
     def get_default_model_paths() -> Dict[str, str]:
         """获取默认模型路径"""
         return {
-            'binary_classifier': 'model/erfen.pth',
-            'multiclass_classifier': 'model/mutilfen.pth',
-            'multiclass_classifier_v2': 'model/mutilfen93.pth'
+            'binary_classifier': 'model/bi_cat98.pth',
+            'multiclass_classifier': 'model/multi_cat93.pth',
+            'multiclass_classifier_v2': 'model/multi_cat93.pth'
         }
     
     @staticmethod
     def find_latest_model(model_type: str, base_dir: str = './') -> Optional[str]:
         """查找最新的模型文件"""
         model_patterns = {
-            'binary': ['**/erfen*.pth', '**/binary*.pth'],
-            'multiclass': ['**/mutilfen*.pth', '**/multiclass*.pth']
+            'binary': ['**/bi_cat*.pth', '**/binary*.pth', '**/erfen*.pth'],
+            'multiclass': ['**/multi_cat*.pth', '**/multiclass*.pth', '**/mutilfen*.pth']
         }
         
         patterns = model_patterns.get(model_type, [])

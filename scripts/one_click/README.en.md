@@ -1,17 +1,14 @@
-# scripts/one_click/ (Linux only)
+# scripts/one_click
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `scripts/one_click/README.md`.
 
-This directory provides “one-click” driver scripts that chain multiple `scripts/00_*.sh` steps together.
+This directory contains one click driver scripts that chain multiple steps from `scripts/` and write the effective override configuration into the output directory for auditing and repeatability. The scripts are Linux focused and verify system type at runtime.
 
-Design principles:
-- **Linux only** (scripts check `uname`)
-- **No guessing paths**: you must provide `--input/--output/--weights` explicitly to avoid running on the wrong data
-- **Reproducible**: writes the override config into the output folder for auditing and re-runs
+---
 
-Recommended run style (no exec permission required):
+## How to run
+
+Recommended invocation:
 
 ```bash
 bash scripts/one_click/00_hcp_pipeline.sh --help
@@ -19,22 +16,21 @@ bash scripts/one_click/00_hcp_pipeline.sh --help
 
 ---
 
-## 1) One-click run (classic HCP)
+## One click run for the HCP pipeline
 
 ```bash
 bash scripts/one_click/00_hcp_pipeline.sh \
   --input /path/to/sequence_or_dataset_root \
   --output /path/to/output_dir \
-  --binary ./model/erfen.pth \
-  --multiclass ./model/mutilfen.pth
+  --binary ./model/bi_cat98.pth \
+  --multiclass ./model/multi_cat93.pth
 ```
 
-Notes:
-- The script chooses `07_detect_hcp.sh` or `09_evaluate_dataset.sh` depending on whether the input looks like a single sequence folder or a dataset root containing `annotations.json` / `annotations/annotations.json`.
+The script selects either single sequence inference or dataset evaluation based on the input directory layout.
 
 ---
 
-## 2) One-click run (HCP‑YOLO optional pipeline)
+## One click run for the HCP encoding plus YOLO pipeline
 
 ```bash
 bash scripts/one_click/01_hcp_yolo_pipeline.sh \
@@ -43,11 +39,11 @@ bash scripts/one_click/01_hcp_yolo_pipeline.sh \
   --yolo ./model/yolo11n.pt
 ```
 
-Optional: add `--multiclass ./model/mutilfen.pth --refine 1` to enable post-YOLO refinement.
+To enable multi class refinement, pass `--multiclass ./model/multi_cat93.pth --refine 1`.
 
 ---
 
-## 3) Full chain (HCP: build → train → eval/report)
+## Full chain for the HCP pipeline
 
 ```bash
 bash scripts/one_click/02_hcp_full_pipeline.sh \
@@ -58,7 +54,7 @@ bash scripts/one_click/02_hcp_full_pipeline.sh \
 
 ---
 
-## 4) Full chain (HCP‑YOLO: build → train → eval/report)
+## Full chain for the HCP encoding plus YOLO pipeline
 
 ```bash
 bash scripts/one_click/03_hcp_yolo_full_pipeline.sh \
@@ -66,4 +62,3 @@ bash scripts/one_click/03_hcp_yolo_full_pipeline.sh \
   --images-dir /path/to/seqanno/images \
   --workdir /path/to/workdir
 ```
-

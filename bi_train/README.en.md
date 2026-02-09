@@ -1,126 +1,90 @@
-# bi_train | Binary Classification (Colony vs Non‑Colony)
+# bi_train
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `bi_train/README.md`.
 
-`bi_train/` trains the binary filter used in the `engine=hcp` pipeline as the **“denoising” stage**.
-HCP proposal boxes are designed for high recall, so they usually contain many noisy candidates.
-The binary classifier removes obvious “non-colony/background/debris” candidates, which significantly reduces false positives (FP) and also reduces the load on the multi-class stage.
+`bi_train/` trains the binary filter used by the `engine=hcp` pipeline. Its purpose is to separate colonies from non colony artifacts among HCP proposals, reducing false positives and reducing the compute load of the multi class stage.
 
 ---
 
-## 1) Where it sits in the system
+## Position in the pipeline
 
-Simplified `engine=hcp` inference:
+A typical `engine=hcp` flow is:
 
-1. HCP generates proposal bboxes (recall-first)
-2. **Binary filter (this module)** filters out non-colony candidates
-3. Multi-class (`mutil_train/`) predicts species/classes for remaining bboxes (optional)
+1. HCP generates high recall proposals
+2. the binary filter classifies each temporal ROI as colony or non colony
+3. the multi class classifier predicts one of five classes for the retained colonies
 
 ---
 
-## 2) Dataset (recommended structure)
+## Dataset
 
-Binary training is best done on a **dedicated binary dataset** (clear positive/negative samples), ideally built via the GUI:
+A dedicated binary dataset built via the GUI is recommended to keep formats consistent:
 
 ```bash
 python gui.py
 ```
 
-The output is COCO-like (`images/` + `annotations/annotations.json`) with fixed categories:
-- `1: positive` (colony)
-- `0: negative` (non-colony)
-
-(Implementation: `gui/binary_dataset_builder.py`)
+The dataset uses `images/` plus `annotations/annotations.json` with two fixed categories corresponding to non colony and colony. Use the GUI generated output as the source of truth for format details.
 
 ---
 
-## 3) Train
+## Training
 
-Run from the repo root (`FOCUST/`):
+Run from the repository root:
 
 ```bash
 python bi_train/bi_training.py bi_train/bi_config.json
 ```
 
-Common fields in `bi_train/bi_config.json` (use the file itself as the source of truth):
-- `training_dataset` / `image_dir` / `annotations`
-- `output_dir`
-- `device`: `auto` / `cpu` / `cuda:0`
-- `epochs` / `batch_size` / `learning_rate`
-- `max_seq_length`: sequence length alignment (pad/truncate/sample)
+Use `bi_train/bi_config.json` as the source of truth. It typically contains dataset paths, output directory, device selection, epochs, batch size, and sequence length alignment settings.
 
 ---
 
-## 4) Outputs & offline weight placement
+## Outputs and offline weight placement
 
-Typical outputs:
-- `best_model.pth` / `latest_model.pth` (or your configured names)
-- `training.log` (or stdout logs)
-- Curves and intermediate evaluation results (if enabled)
+Typical outputs include:
 
-Recommended: copy/symlink the final weight into `FOCUST/model/` for stable offline use:
-- `FOCUST/model/erfen.pth`
+- `best_model.pth` and `latest_model.pth`
+- `classification_report.json` and training logs
+- curves and optional intermediate evaluation artifacts
+
+For offline stability, place the final weight under `model/` and point the detection configuration to it. This repository ships a binary weight file at `model/bi_cat98.pth`.
+
+If an older configuration is used, update `models.binary_classifier` to point to the local weight path.
 
 ---
 
-## 5) Standalone inference (without the main pipeline)
+## Standalone inference checks
 
-Binary inference can run standalone:
+Binary inference can run standalone for quick validation:
 
 ```bash
-python core/binary_inference.py \
-  --model model/erfen.pth \
-  --input /path/to/sequence_or_roi_dir \
-  --device auto \
-  --threshold 0.5
+python core/binary_inference.py --model model/bi_cat98.pth --input /path/to/sequence_or_roi_dir --device auto --threshold 0.5
 ```
 
-Inspect model metadata saved in the weight file (to align preprocessing between train/infer):
+Inspect metadata stored in the weight:
 
 ```bash
-python core/binary_inference.py --model model/erfen.pth --input . --info
+python core/binary_inference.py --model model/bi_cat98.pth --input . --info
 ```
 
 ---
 
-## 6) Use in the main pipeline (`engine=hcp`)
+## Integrate into the main system
 
-Enable via detection config (`server_det.json` or your override):
+Enable the binary filter in your detection config:
 
 ```json
 {
-  "models": { "binary_classifier": "./model/erfen.pth" },
+  "models": { "binary_classifier": "./model/bi_cat98.pth" },
   "pipeline": { "use_binary_filter": true }
 }
 ```
 
-Disable for ablation/debug:
-
-```json
-{ "pipeline": { "use_binary_filter": false } }
-```
-
 ---
 
-## 7) Model architecture (as implemented)
+## Common issues
 
-Core model code: `bi_train/train/classification_model.py`
-
-Conceptually:
-- Feature extractor: `BioGrowthNetV2` (lightweight CNN backbone → `feature_dim`)
-- Temporal modeling: dual `CfCWrapper(AutoNCP)` branches → `output_size_cfc`
-- Fusion: `CrossAttentionFusion`
-- Classifier head: MLP → `num_classes=2`
-
-Loss functions often used: `CrossEntropy` / `FocalLoss` (to handle imbalance).
-
----
-
-## 8) Troubleshooting
-
-- **Model file not found**: ensure `models.binary_classifier` points to a local `.pth`
-- **CUDA OOM**: reduce batch size; or enable `micro_batch_enabled` in detection (stability/throughput; should not change accuracy)
-- **Inconsistent sequence lengths**: ensure training and inference use compatible `max_seq_length/sequence_length` (use `--info` to verify)
-
+- weight not found: verify `models.binary_classifier` points to a local `.pth`
+- out of memory: reduce training batch size, or reduce inference `micro_batch_size`
+- inconsistent sequence length: align sequence length settings between training and inference, then verify using `--info`

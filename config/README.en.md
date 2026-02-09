@@ -1,57 +1,39 @@
-# Config (JSON) | Configuration Guide
+# config
 
-<p align="center">
-  <a href="README.md">中文</a> | <b>English</b>
-</p>
+English documentation. Chinese documentation is available in `config/README.md`.
 
-This directory centralizes FOCUST **JSON configurations**. The design goals are:
-- **Versionable**: every experiment/deployment can be fully described by JSON
-- **Mergeable**: minimal overrides on top of a template, so missing keys don’t break new features
-- **Legacy-compatible**: keeps key fields/defaults from historical presets (including some absolute paths/device ids) to reproduce old experiments
+This directory centralizes JSON configuration files for FOCUST. The configuration system is designed to support versioned experiments, minimal overrides, and reproducible delivery across GUI and CLI.
 
 ---
 
-## 1) Key files
+## Key files
 
-### 1.1 Detection (shared by GUI/CLI)
+### Detection and evaluation configuration
 
-- `FOCUST/server_det.json`
-  - Detection/evaluation **template** (base; recommended to keep read-only)
-- `FOCUST/config/server_det.local.json`
-  - Project-level override (keeps legacy parameters/paths/thresholds)
-- `~/.focust/server_det.local.json` (optional)
-  - User override (higher priority; good for machine-specific differences)
+- `server_det.json` at the repository root is the template configuration with full fields and safe defaults
+- `config/server_det.local.json` is the project level override usually saved by the GUI
+- `~/.focust/server_det.local.json` is an optional per user override for machine specific differences
 
-**Merge priority / load order**
-1. Explicit CLI config: `python laptop_ui.py --config <your.json>`
-2. User override: `~/.focust/server_det.local.json` (or `$FOCUST_USER_CONFIG_DIR`)
-3. Project override: `FOCUST/config/server_det.local.json`
-4. Template: `FOCUST/server_det.json`
+Load and merge priority from highest to lowest:
 
-### 1.2 GUI training defaults
+1. explicitly provided CLI configuration such as `python laptop_ui.py --config <your.json>`
+2. user override configuration under `~/.focust/server_det.local.json`, or a directory provided by `FOCUST_USER_CONFIG_DIR`
+3. project override configuration at `config/server_det.local.json`
+4. template configuration at `server_det.json`
 
-- `FOCUST/config/focust_config.json`
-  - GUI/training defaults used by `gui.py` (language/device/hyperparams, etc.)
+### GUI and training defaults
 
-### 1.3 Legacy presets (kept for reproduction)
+- `config/focust_config.json` provides defaults for `gui.py`, including language, device selection, hyperparameters, and class labels
 
-The following files are kept **as-is** as legacy examples (may include absolute paths/device ids on purpose):
-- `FOCUST/config/batch_detection_config.json`
-- `FOCUST/config/dataset_construction_config.json`
-- `FOCUST/config/dataset_construction.json`
-- `FOCUST/config/focust_detection_config.json`
+### Legacy configuration examples
 
-When moving to a new machine, you typically only need to change:
-- `input_path` / `input_paths`
-- `output_path`
-- `device`
-- `models.*`
+This directory keeps several legacy configuration files to reproduce older experiments. They may contain absolute paths and device identifiers by design. When moving to a new machine, update input and output paths, device selection, and the `models` fields.
 
 ---
 
-## 2) Engines (switch)
+## Engine switch
 
-In detection config:
+The detection engine is selected via the `engine` field:
 
 ```json
 { "engine": "hcp" }
@@ -63,47 +45,43 @@ In detection config:
 
 ---
 
-## 3) Path resolution
+## Path resolution
 
-- Relative paths are resolved **against the config file directory first**, then against the `FOCUST/` repo root.
-- YOLO weights support legacy fallback:
-  - `*_best.pt` → fallback to the same name without `_best` (e.g. `yolo11x_best.pt` → `yolo11x.pt`)
-  - `best.pt` → fallback to an available YOLO weight under `FOCUST/model/` (offline-friendly)
+Paths are resolved using a two step strategy:
 
----
+1. resolve relative paths against the configuration file directory
+2. then resolve against the repository root
 
-## 4) Back frames (`*_back.*`) and fallback policy
-
-Many acquisition/preprocessing pipelines generate frames like `0001_back.jpg` (background/denoised frames). FOCUST has built-in support:
-
-- `mode=single` (single folder):
-  - defaults to **preferring** `*_back.*` if present
-  - if no `*_back.*` exists, defaults to **falling back** to all images (avoid skipping)
-- Batch modes (e.g. `batch_detect_folders` / `multi_single`):
-  - default is more “strict” (for standardized datasets): configurable to “back-only and no fallback”
-
-Relevant config (under `batch_detection`):
-- `back_images_only`: whether to only use or prefer `*_back.*`
-- `fallback_to_all_images_if_no_back`: if no back frames exist, whether to fallback to all images
-
-Tip: `config/batch_detection_config.json` shows typical “strict batch detection” settings with comments.
+YOLO weights support a fallback naming policy to keep offline startup reliable. If a configuration references `*_best.pt` but the file does not exist, the system attempts the same name without `_best`. If it still cannot find the file, it attempts to locate an available YOLO weight under `model/`.
 
 ---
 
-## 5) Language codes
+## Back frame policy
 
-FOCUST normalizes language codes; the following are accepted:
-- Chinese: `zh_CN` / `zh_cn` / `zh` / `Chinese`
-- English: `en` / `en_US` / `en_us` / `English`
+Some acquisition pipelines generate frames with a `_back` suffix. The system supports this naming and exposes strictness control for single sample analysis and batch workflows.
+
+The key fields are under the `batch_detection` section:
+
+- `back_images_only` controls whether to use only back frames or to prefer back frames
+- `fallback_to_all_images_if_no_back` controls whether to fall back to all frames when back frames do not exist
 
 ---
 
-## 6) Chart language (visualization)
+## Language codes
 
-Chart language is controlled by `visualization_settings.chart_language`:
-- `auto` (default): follows UI language
-- `zh` / `zh_CN` / `zh_cn`: force Chinese
-- `en` / `en_US` / `en_us`: force English
+FOCUST normalizes language codes and accepts:
 
-Note: Chinese chart rendering does not rely on system fonts. FOCUST prefers the built-in font `assets/fonts/NotoSansSC-Regular.ttf` (see `core/cjk_font.py`).
+- Chinese values such as `zh`, `zh_CN`, `zh_cn`, `Chinese`
+- English values such as `en`, `en_US`, `en_us`, `English`
 
+---
+
+## Chart language
+
+Visualization chart language is controlled by `visualization_settings.chart_language`:
+
+- `auto` follows the UI language
+- `zh` and `zh_CN` force Chinese
+- `en` and `en_US` force English
+
+Chinese chart rendering uses the built in font `assets/fonts/NotoSansSC-Regular.ttf` via `core/cjk_font.py`.
