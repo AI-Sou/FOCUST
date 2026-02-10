@@ -87,13 +87,17 @@ class SequenceLevelEvaluator:
 
         # 4. PR Curve Data - 为每个IoU阈值生成PR曲线数据
         if self.advanced_config.get('enable_pr_curves', True):
-            advanced_results['pr_curve_data'] = self._collect_pr_curve_data(
-                det_formatted, gt_formatted
-            )
-            # 额外：为每个IoU阈值生成完整PR曲线（用于事后拟合每个IoU一条曲线）
-            advanced_results['pr_curves_by_iou'] = self._collect_pr_curves_by_iou(
-                det_formatted, gt_formatted
-            )
+            multiclass_enabled = True
+            if isinstance(self.filter_context, dict):
+                multiclass_enabled = bool(self.filter_context.get("multiclass_enabled", True))
+            if multiclass_enabled:
+                advanced_results['pr_curve_data'] = self._collect_pr_curve_data(
+                    det_formatted, gt_formatted
+                )
+                # 额外：为每个IoU阈值生成完整PR曲线（用于事后拟合每个IoU一条曲线）
+                advanced_results['pr_curves_by_iou'] = self._collect_pr_curves_by_iou(
+                    det_formatted, gt_formatted
+                )
 
         # 5. IoU Sweep详情已在外部收集，这里只需验证
         advanced_results['iou_sweep_verified'] = len(iou_sweep_metrics) > 0

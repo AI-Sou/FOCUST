@@ -966,9 +966,8 @@ class ProcessingWorker(QObject):
         self.eval_settings = config.get('evaluation_settings', {})
         self.gpu_config = config.get('gpu_config', {})
 
-        # 【修复】从Advanced evaluation config中获取双模式评估设置
-        advanced_eval_config = config.get('advanced_evaluation', {})
-        self.dual_mode_eval = advanced_eval_config.get('enable_dual_mode_evaluation', False)
+        # 双模式评估已移除；始终禁用
+        self.dual_mode_eval = False
 
         # 【修复】初始化评估结果字典
         self.evaluation_results = {}
@@ -1151,6 +1150,21 @@ class ProcessingWorker(QObject):
             return path_like.strip()
 
     def _get_english_class_labels_for_legend(self):
+        # Prefer dataset categories from annotations.json for evaluation legends.
+        if isinstance(self.config, dict):
+            cats = self.config.get('dataset_categories', [])
+            if isinstance(cats, list):
+                out = {}
+                for c in cats:
+                    if isinstance(c, dict) and "id" in c and "name" in c:
+                        out[str(c["id"])] = str(c["name"])
+                if out:
+                    return out
+            cat_map = self.config.get('category_id_to_name')
+            if isinstance(cat_map, dict) and cat_map:
+                return {str(k): str(v) for k, v in cat_map.items()}
+
+        # Fallback to configured labels when dataset categories are unavailable.
         labels_cfg = self.config.get('class_labels', {}) if isinstance(self.config, dict) else {}
         normalized = {}
         if isinstance(labels_cfg, dict):
@@ -2938,7 +2952,7 @@ class ProcessingWorker(QObject):
         successful_results = []
         
         self._emit_log(f"Starting batch evaluation for {total_sequences} sequences...")
-        self._emit_log("Pipeline: HCP detection -> binary screening -> multiclass -> IoU/class matching -> metrics")
+        self._emit_log("Pipeline: HCP detection -> (optional) binary filter -> (optional) multiclass -> IoU/center-distance matching -> metrics")
 
         # 用于累计IoU扫描结果的字典（支持多模式）
         iou_sweep_stats_by_mode: Dict[str, Dict[str, Dict[str, float]]] = {}
@@ -2955,20 +2969,9 @@ class ProcessingWorker(QObject):
                 accum['gt'] += seq_metrics.get('total_gt', 0)
                 accum['det'] += seq_metrics.get('total_detections', 0)
 
-        # 【新增】检查是否启用双模式评估
-        advanced_eval_config = self.config.get('advanced_evaluation', {})
-        enable_dual_mode = advanced_eval_config.get('enable_dual_mode_evaluation', False)
-        self._emit_log(f"Advanced evaluation config: {advanced_eval_config}")
-        self._emit_log(f"Dual-mode enabled: {enable_dual_mode}")
-
-        if enable_dual_mode:
-            self._emit_log("=== Dual-mode evaluation enabled ===")
-            self._emit_log("Mode 1: small colony filtering enabled (label_as_growing=True)")
-            self._emit_log("Mode 2: small colony filtering disabled (label_as_growing=False)")
-            self._emit_log("Each sequence will be evaluated in both configurations.\n")
-        else:
-            self._emit_log("=== Single-mode evaluation ===")
-            self._emit_log("Running evaluation with current configuration only.\n")
+        enable_dual_mode = False
+        self._emit_log("=== Single-mode evaluation ===")
+        self._emit_log("Running evaluation with current configuration only.\n")
 
         # 使用合适的线程池大小
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -2980,29 +2983,12 @@ class ProcessingWorker(QObject):
                 device = devices[i % len(devices)]
 
                 self._emit_log(f"Preparing sequence {seq_id} ({len(self.data)} total)")
-                self._emit_log(f"Dual-mode active: {enable_dual_mode}")
 
-                if enable_dual_mode:
-                    self._emit_log(f"Sequence {seq_id}: scheduling dual-mode evaluations")
-                    future1 = executor.submit(
-                        self._evaluate_single_sequence_with_mode,
-                        seq_id, seq_data, eval_run_output_dir, device,
-                        mode_name="Small colony filter enabled", small_colony_enabled=True
-                    )
-                    future_to_seq_id[future1] = (seq_id, seq_data, "mode1-with-filter")
-
-                    future2 = executor.submit(
-                        self._evaluate_single_sequence_with_mode,
-                        seq_id, seq_data, eval_run_output_dir, device,
-                        mode_name="Small colony filter disabled", small_colony_enabled=False
-                    )
-                    future_to_seq_id[future2] = (seq_id, seq_data, "mode2-without-filter")
-                else:
-                    future = executor.submit(
-                        self._evaluate_single_sequence_comprehensive,
-                        seq_id, seq_data, eval_run_output_dir, device
-                    )
-                    future_to_seq_id[future] = (seq_id, seq_data)
+                future = executor.submit(
+                    self._evaluate_single_sequence_comprehensive,
+                    seq_id, seq_data, eval_run_output_dir, device
+                )
+                future_to_seq_id[future] = (seq_id, seq_data)
 
             # 收集结果
             try:
@@ -3017,20 +3003,11 @@ class ProcessingWorker(QObject):
                         break
 
                     task_info = future_to_seq_id[future]
-                    if len(task_info) == 3:  # 双模式评估结果
-                        seq_id, seq_data, mode_name = task_info
-                    else:  # 单模式评估结果
-                        seq_id, seq_data = task_info
-                        mode_name = None
+                    seq_id, seq_data = task_info
 
                     try:
                         result = future.result(timeout=300)  # 5分钟超时
                         if result and result.get('status') == 'success':
-                            # 为双模式结果添加模式标识
-                            if mode_name:
-                                result['evaluation_mode'] = mode_name
-                                result['dual_mode'] = True
-
                             # 【修复】为时序评估添加原始序列数据
                             result['seq_data'] = seq_data
                             successful_results.append(result)
@@ -3038,11 +3015,6 @@ class ProcessingWorker(QObject):
                             if self.perform_iou_sweep:
                                 # 累计IoU扫描结果（总体）
                                 accumulate_iou_stats('overall', result.get('iou_sweep_metrics', {}), result['metrics'])
-
-                                # 双模式下分别统计
-                                if enable_dual_mode:
-                                    mode_key = 'with_filter' if result.get('small_colony_filter_enabled', False) else 'without_filter'
-                                    accumulate_iou_stats(mode_key, result.get('iou_sweep_metrics', {}), result['metrics'])
                             else:
                                 # 写入单点IoU的总结报告
                                 self._append_to_csv_report_eval(seq_id, result['metrics'])
@@ -3059,14 +3031,8 @@ class ProcessingWorker(QObject):
                                 'seq_id': seq_id,
                                 'status': 'error',
                                 'message': error_msg,
-                                'evaluation_mode': mode_name if 'mode_name' in locals() else None,
-                                'dual_mode': 'mode_name' in locals()
                             })
                             self._emit_log(f"序列 {seq_id} 处理失败或返回无效结果: {error_msg}")
-                            if 'mode_name' in locals():
-                                self._emit_log(f"  模式: {mode_name}")
-                            else:
-                                self._emit_log(f"  模式: 未知 (可能单模式评估)")
 
                     except Exception as e:
                         failed_sequences.append({'seq_id': seq_id, 'status': 'error', 'message': f'超时或未知异常: {e}'})
@@ -3096,29 +3062,24 @@ class ProcessingWorker(QObject):
                 
             if self.perform_iou_sweep and iou_sweep_stats_by_mode:
                 self.iou_sweep_report_paths = []
-                for mode_key, stats in iou_sweep_stats_by_mode.items():
-                    mode_label = None
-                    if enable_dual_mode:
-                        if mode_key == 'with_filter':
-                            mode_label = 'with_filter'
-                        elif mode_key == 'without_filter':
-                            mode_label = 'without_filter'
-                        else:
-                            mode_label = 'overall'
-                    report_path = self._generate_iou_sweep_report(stats, mode=mode_label)
-                    if report_path:
-                        self.iou_sweep_report_paths.append(report_path)
-                        tag = mode_label if mode_label else 'overall'
-                        self._emit_log(f"IoU扫描报告[{tag}]已保存至: {report_path}")
-                if not self.iou_sweep_report_paths:
+                stats = iou_sweep_stats_by_mode.get('overall') or {}
+                report_path = self._generate_iou_sweep_report(stats, mode="overall")
+                if report_path:
+                    self.iou_sweep_report_paths.append(report_path)
+                    self._emit_log(f"IoU扫描报告[overall]已保存至: {report_path}")
+                else:
                     self._emit_log("IoU扫描报告未生成有效内容。")
             elif successful_results:
                 self._emit_log(f"评估报告已保存至: {self.eval_csv_report_path}")
             
             self._emit_log(f"可视化结果保存在: {eval_run_output_dir / 'sequence_visualizations'}")
 
-            # Export per-GT detail tables for fixed thresholds
-            self._export_fixed_threshold_details(eval_run_output_dir, successful_results)
+            # Export per-GT detail tables for fixed thresholds (multiclass only)
+            multiclass_enabled = any(
+                bool(res.get('multiclass_enabled')) for res in successful_results if isinstance(res, dict)
+            )
+            if multiclass_enabled:
+                self._export_fixed_threshold_details(eval_run_output_dir, successful_results)
             self._export_successful_results(eval_run_output_dir, successful_results)
             
             # 生成最终统计报告
@@ -3126,123 +3087,32 @@ class ProcessingWorker(QObject):
             
             # === 生成增强的数据集评估报告 ===
             try:
-                if enable_dual_mode:
-                    # 【新增】为双模式评估分别生成增强评估报告
-                    self._emit_log("\n=== 生成双模式增强评估报告 ===")
+                self._emit_log("\n=== 生成增强评估报告 ===")
+                self._generate_enhanced_evaluation_report(eval_run_output_dir, successful_results, failed_sequences, iou_sweep_stats_by_mode)
 
-                    # 分离两种模式的结果
-                    with_filter_results = []
-                    without_filter_results = []
-
-                    for result in successful_results:
-                        if result.get('dual_mode', False):
-                            if result.get('small_colony_filter_enabled', True):
-                                with_filter_results.append(result)
-                            else:
-                                without_filter_results.append(result)
-
-                    # 为启用过滤模式生成完整的增强评估报告
-                    if with_filter_results:
-                        with_filter_dir = eval_run_output_dir / "dual_mode_with_filter"
-                        self._emit_log("  生成启用过滤模式的增强评估报告...")
-                        self._generate_enhanced_evaluation_report(
-                            with_filter_dir, with_filter_results,
-                            [r for r in failed_sequences if r.get('evaluation_mode') == '启用小菌落过滤'],
-                            {'with_filter': iou_sweep_stats_by_mode.get('with_filter', {})}
+                # Generate all visualizations if enabled
+                if self.config.get('visualization_settings', {}).get('save_all_charts', False):
+                    try:
+                        self._emit_log("Generating comprehensive visualizations...")
+                        chart_lang = (
+                            (self.config.get('visualization_settings', {}) or {}).get('chart_language')
+                            if isinstance(self.config.get('visualization_settings'), dict)
+                            else None
                         )
-
-                        # 为启用过滤模式生成可视化
-                        if self.config.get('visualization_settings', {}).get('save_all_charts', False):
-                            try:
-                                self._emit_log("  生成启用过滤模式的可视化图表...")
-                                chart_lang = (
-                                    (self.config.get('visualization_settings', {}) or {}).get('chart_language')
-                                    if isinstance(self.config.get('visualization_settings'), dict)
-                                    else None
-                                )
-                                # chart_language supports: auto/zh/en (and common aliases). "auto" follows UI language.
-                                resolved_chart_lang = str(chart_lang).strip() if chart_lang is not None else ""
-                                if not resolved_chart_lang or resolved_chart_lang.lower() in ("auto", "ui", "system", "default"):
-                                    resolved_chart_lang = str(self.current_language)
-                                viz_engine = VisualizationEngine(
-                                    with_filter_dir,
-                                    language=str(resolved_chart_lang),
-                                    dpi=self.config.get('visualization_settings', {}).get('chart_dpi', 300),
-                                    config=self.config
-                                )
-                                viz_engine.generate_all_visualizations(with_filter_results, with_filter_dir)
-                            except Exception as e:
-                                self._emit_log(f"  启用过滤模式可视化生成失败: {e}")
-
-                    # 为禁用过滤模式生成完整的增强评估报告
-                    if without_filter_results:
-                        without_filter_dir = eval_run_output_dir / "dual_mode_without_filter"
-                        self._emit_log("  生成禁用过滤模式的增强评估报告...")
-                        self._generate_enhanced_evaluation_report(
-                            without_filter_dir, without_filter_results,
-                            [r for r in failed_sequences if r.get('evaluation_mode') == '禁用小菌落过滤'],
-                            {'without_filter': iou_sweep_stats_by_mode.get('without_filter', {})}
+                        # chart_language supports: auto/zh/en (and common aliases). "auto" follows UI language.
+                        resolved_chart_lang = str(chart_lang).strip() if chart_lang is not None else ""
+                        if not resolved_chart_lang or resolved_chart_lang.lower() in ("auto", "ui", "system", "default"):
+                            resolved_chart_lang = str(self.current_language)
+                        self.viz_engine = VisualizationEngine(
+                            eval_run_output_dir,
+                            language=str(resolved_chart_lang),
+                            dpi=self.config.get('visualization_settings', {}).get('chart_dpi', 300),
+                            config=self.config
                         )
-
-                        # 为禁用过滤模式生成可视化
-                        if self.config.get('visualization_settings', {}).get('save_all_charts', False):
-                            try:
-                                self._emit_log("  生成禁用过滤模式的可视化图表...")
-                                chart_lang = (
-                                    (self.config.get('visualization_settings', {}) or {}).get('chart_language')
-                                    if isinstance(self.config.get('visualization_settings'), dict)
-                                    else None
-                                )
-                                # chart_language supports: auto/zh/en (and common aliases). "auto" follows UI language.
-                                resolved_chart_lang = str(chart_lang).strip() if chart_lang is not None else ""
-                                if not resolved_chart_lang or resolved_chart_lang.lower() in ("auto", "ui", "system", "default"):
-                                    resolved_chart_lang = str(self.current_language)
-                                viz_engine = VisualizationEngine(
-                                    without_filter_dir,
-                                    language=str(resolved_chart_lang),
-                                    dpi=self.config.get('visualization_settings', {}).get('chart_dpi', 300),
-                                    config=self.config
-                                )
-                                viz_engine.generate_all_visualizations(without_filter_results, without_filter_dir)
-                            except Exception as e:
-                                self._emit_log(f"  禁用过滤模式可视化生成失败: {e}")
-
-                    # 【新增】生成双模式对比报告
-                    self._emit_log("\n=== 生成双模式对比报告 ===")
-                    # === 双模式对比分析（使用完整数据）===
-                    dual_mode_results = self._perform_dual_mode_comparison_analysis(successful_results, eval_run_output_dir)
-
-                    # 生成双模式对比报告
-                    self._generate_dual_mode_comparison_report(eval_run_output_dir, successful_results, failed_sequences)
-
-                else:
-                    # 单模式评估的原有逻辑
-                    self._emit_log("\n=== 生成增强评估报告 ===")
-                    self._generate_enhanced_evaluation_report(eval_run_output_dir, successful_results, failed_sequences, iou_sweep_stats_by_mode)
-
-                    # Generate all visualizations if enabled
-                    if self.config.get('visualization_settings', {}).get('save_all_charts', False):
-                        try:
-                            self._emit_log("Generating comprehensive visualizations...")
-                            chart_lang = (
-                                (self.config.get('visualization_settings', {}) or {}).get('chart_language')
-                                if isinstance(self.config.get('visualization_settings'), dict)
-                                else None
-                            )
-                            # chart_language supports: auto/zh/en (and common aliases). "auto" follows UI language.
-                            resolved_chart_lang = str(chart_lang).strip() if chart_lang is not None else ""
-                            if not resolved_chart_lang or resolved_chart_lang.lower() in ("auto", "ui", "system", "default"):
-                                resolved_chart_lang = str(self.current_language)
-                            self.viz_engine = VisualizationEngine(
-                                eval_run_output_dir,
-                                language=str(resolved_chart_lang),
-                                dpi=self.config.get('visualization_settings', {}).get('chart_dpi', 300),
-                                config=self.config
-                            )
-                            self.viz_engine.generate_all_visualizations(successful_results, eval_run_output_dir)
-                            self._emit_log("Visualizations generated successfully")
-                        except Exception as e:
-                            self._emit_log(f"Visualization generation failed: {e}")
+                        self.viz_engine.generate_all_visualizations(successful_results, eval_run_output_dir)
+                        self._emit_log("Visualizations generated successfully")
+                    except Exception as e:
+                        self._emit_log(f"Visualization generation failed: {e}")
 
             except Exception as e:
                 self._emit_log(f"生成增强评估报告失败: {e}")
@@ -3894,14 +3764,20 @@ class ProcessingWorker(QObject):
             # 【修复】现在需要手动应用 multiclass_id_map 映射，与 debug.py 保持一致
             det_formatted = []
             for b in filtered_bboxes:
-                # 获取原始预测索引
-                pred_index = raw_multiclass_predictions.get(tuple(b[:4]), -1)
-                scores = raw_multiclass_scores.get(tuple(b[:4]))
-                pred_class_id, class_scores_by_id, pred_score = self._apply_multiclass_thresholds(scores)
-                if pred_class_id == -1 and not class_scores_by_id and pred_index >= 0:
-                    pred_class_id = self.multiclass_id_map.get(str(pred_index), -1)
-                    if pred_class_id == -1:
-                        self._emit_log(f"警告: 序列 {seq_id} 的模型输出索引 '{pred_index}' 在映射表中未找到！")
+                if use_multiclass:
+                    # 获取原始预测索引
+                    pred_index = raw_multiclass_predictions.get(tuple(b[:4]), -1)
+                    scores = raw_multiclass_scores.get(tuple(b[:4]))
+                    pred_class_id, class_scores_by_id, pred_score = self._apply_multiclass_thresholds(scores)
+                    if pred_class_id == -1 and not class_scores_by_id and pred_index >= 0:
+                        pred_class_id = self.multiclass_id_map.get(str(pred_index), -1)
+                        if pred_class_id == -1:
+                            self._emit_log(f"警告: 序列 {seq_id} 的模型输出索引 '{pred_index}' 在映射表中未找到！")
+                else:
+                    pred_index = -1
+                    pred_class_id = -1
+                    class_scores_by_id = {}
+                    pred_score = None
 
                 det_formatted.append({
                     'bbox': b[:4],
@@ -4016,6 +3892,8 @@ class ProcessingWorker(QObject):
             total_gt = len(gt_formatted)
             total_det = len(det_formatted)
             category_id_to_name = self.config.get('category_id_to_name') or {}
+            if not use_multiclass:
+                category_id_to_name = {}
 
             # Center-distance (strict + detection-only)
             cd_det_strict, cd_gt_strict = [d.copy() for d in det_formatted], [g.copy() for g in gt_formatted]
@@ -4056,12 +3934,14 @@ class ProcessingWorker(QObject):
             # Per-class:
             # - strict: IoU/center-distance + class (only meaningful when multiclass is enabled)
             # - detection_only: class-agnostic per-class recall (by GT class), used for the "IoU-only" report section
-            cd_per_class_do = self._compute_per_class_recall_detection_only(cd_tagged_gts0, category_id_to_name)
-            iou_per_class_do = self._compute_per_class_recall_detection_only(iou_tagged_gts0, category_id_to_name)
             if require_class_match_for_eval:
+                cd_per_class_do = self._compute_per_class_recall_detection_only(cd_tagged_gts0, category_id_to_name)
+                iou_per_class_do = self._compute_per_class_recall_detection_only(iou_tagged_gts0, category_id_to_name)
                 cd_per_class_strict = self._compute_per_class_metrics_strict(cd_tagged_dets, cd_tagged_gts, category_id_to_name)
                 iou_per_class_strict = self._compute_per_class_metrics_strict(iou_tagged_dets, iou_tagged_gts, category_id_to_name)
             else:
+                cd_per_class_do = {}
+                iou_per_class_do = {}
                 cd_per_class_strict = {}
                 iou_per_class_strict = {}
 
@@ -4104,35 +3984,34 @@ class ProcessingWorker(QObject):
             if require_class_match_for_eval:
                 fixed_iou_per_class = self._compute_per_class_metrics_strict(fiou_tagged_dets, fiou_tagged_gts, category_id_to_name)
                 fixed_center_per_class = self._compute_per_class_metrics_strict(fcd_tagged_dets, fcd_tagged_gts, category_id_to_name)
+
+                fixed_iou_per_gt_details = self._collect_per_gt_match_details(
+                    det_formatted, gt_formatted, mode="iou", threshold=fixed_iou_threshold
+                )
+                fixed_center_per_gt_details = self._collect_per_gt_match_details(
+                    det_formatted, gt_formatted, mode="center_distance", threshold=fixed_center_threshold
+                )
+
+                fixed_iou_bins_by_class = self._build_iou_bins_by_class(fiou_tagged_dets, category_id_to_name)
+                fixed_center_bins_by_class = self._build_center_distance_bins_by_class(fcd_tagged_dets, category_id_to_name)
+
+                fixed_thresholds_payload = {
+                    "iou_0_1": {
+                        "threshold": fixed_iou_threshold,
+                        "per_class_metrics": fixed_iou_per_class,
+                        "per_gt_details": fixed_iou_per_gt_details,
+                        "iou_bins_by_class": fixed_iou_bins_by_class,
+                    },
+                    "center_distance_50": {
+                        "threshold": fixed_center_threshold,
+                        "per_class_metrics": fixed_center_per_class,
+                        "per_gt_details": fixed_center_per_gt_details,
+                        "distance_bins_by_class": fixed_center_bins_by_class,
+                    },
+                }
             else:
-                # Without multiclass, per-class strict metrics are not meaningful.
-                fixed_iou_per_class = {}
-                fixed_center_per_class = {}
-
-            fixed_iou_per_gt_details = self._collect_per_gt_match_details(
-                det_formatted, gt_formatted, mode="iou", threshold=fixed_iou_threshold
-            )
-            fixed_center_per_gt_details = self._collect_per_gt_match_details(
-                det_formatted, gt_formatted, mode="center_distance", threshold=fixed_center_threshold
-            )
-
-            fixed_iou_bins_by_class = self._build_iou_bins_by_class(fiou_tagged_dets, category_id_to_name)
-            fixed_center_bins_by_class = self._build_center_distance_bins_by_class(fcd_tagged_dets, category_id_to_name)
-
-            fixed_thresholds_payload = {
-                "iou_0_1": {
-                    "threshold": fixed_iou_threshold,
-                    "per_class_metrics": fixed_iou_per_class,
-                    "per_gt_details": fixed_iou_per_gt_details,
-                    "iou_bins_by_class": fixed_iou_bins_by_class,
-                },
-                "center_distance_50": {
-                    "threshold": fixed_center_threshold,
-                    "per_class_metrics": fixed_center_per_class,
-                    "per_gt_details": fixed_center_per_gt_details,
-                    "distance_bins_by_class": fixed_center_bins_by_class,
-                },
-            }
+                # Without multiclass, per-class and fixed-threshold details are not generated.
+                fixed_thresholds_payload = {}
 
             # Backwards-compat: keep existing variables aligned with the current selection
             if self.matching_method == 'center_distance':
@@ -4212,7 +4091,8 @@ class ProcessingWorker(QObject):
                 tagged_gts_vis,
                 tagged_dets_vis,
                 eval_run_output_dir,
-                small_colony_mode=small_colony_enabled
+                small_colony_mode=small_colony_enabled,
+                multiclass_enabled=require_class_match_for_eval,
             )
             
             elapsed_time = time.time() - start_time
@@ -4303,13 +4183,15 @@ class ProcessingWorker(QObject):
                         filter_context=filter_context
                     )
                     ar = enhanced_result.get('advanced_results', {}) or {}
-                    ar.setdefault('per_class_iou_only', payload.get('per_class_iou_only', {}))
-                    if seq_id in self._classification_only_by_sequence:
-                        ar.setdefault('classification_only', self._classification_only_by_sequence.get(seq_id))
-                        ar.setdefault('classification_only_source', self.multiclass_thresholds_source)
-                    if self.multiclass_class_thresholds:
-                        ar.setdefault('multiclass_thresholds', self.multiclass_class_thresholds)
-                    ar.setdefault('fixed_thresholds', fixed_thresholds_payload)
+                    if require_class_match_for_eval:
+                        ar.setdefault('per_class_iou_only', payload.get('per_class_iou_only', {}))
+                        if seq_id in self._classification_only_by_sequence:
+                            ar.setdefault('classification_only', self._classification_only_by_sequence.get(seq_id))
+                            ar.setdefault('classification_only_source', self.multiclass_thresholds_source)
+                        if self.multiclass_class_thresholds:
+                            ar.setdefault('multiclass_thresholds', self.multiclass_class_thresholds)
+                        if fixed_thresholds_payload:
+                            ar.setdefault('fixed_thresholds', fixed_thresholds_payload)
                     advanced_results_by_matching[_mode_key] = ar
 
                 advanced_results = advanced_results_by_matching.get(self.matching_method, {}) or {}
@@ -4320,11 +4202,11 @@ class ProcessingWorker(QObject):
                 self._emit_log(f"  {traceback.format_exc()}")
                 advanced_results_by_matching = {}
 
-            if 'per_class_iou_only' not in advanced_results:
+            if require_class_match_for_eval and 'per_class_iou_only' not in advanced_results:
                 advanced_results['per_class_iou_only'] = per_class_iou_only
 
             # 兼容性：保留原有的PR曲线和混淆矩阵计算（如果配置中启用）
-            if self.config.get('advanced_evaluation', {}).get('enable_pr_curves', True):
+            if require_class_match_for_eval and self.config.get('advanced_evaluation', {}).get('enable_pr_curves', True):
                 if 'pr_curve' not in advanced_results:  # 避免重复计算
                     try:
                         pr_data = self.metrics_calculator.calculate_pr_curve(
@@ -4405,7 +4287,8 @@ class ProcessingWorker(QObject):
                     'time_hcp_seconds': metrics['time_hcp_seconds'],
                     'time_binary_seconds': metrics['time_binary_seconds'],
                     'time_multiclass_seconds': metrics['time_multiclass_seconds'],
-                    'small_colony_filter_enabled': small_colony_enabled
+                    'small_colony_filter_enabled': small_colony_enabled,
+                    'multiclass_enabled': require_class_match_for_eval,
                 }
             
         except Exception as e:
@@ -4931,7 +4814,8 @@ class ProcessingWorker(QObject):
         tagged_gts,
         tagged_dets,
         output_dir,
-        small_colony_mode=True
+        small_colony_mode=True,
+        multiclass_enabled=True,
     ):
         """
         【新版】生成改进的可视化图像。
@@ -4958,7 +4842,7 @@ class ProcessingWorker(QObject):
             ])
 
             # 从配置文件读取英文类别标签（用于颜色判定）
-            class_labels = self._get_english_class_labels_for_legend()
+            class_labels = self._get_english_class_labels_for_legend() if multiclass_enabled else {}
 
             # 标注类型颜色（标注框颜色）
             detection_type_colors = {
@@ -4971,7 +4855,11 @@ class ProcessingWorker(QObject):
 
             # 小菌落大小阈值
             small_colony_min_size = self.config.get('small_colony_filter', {}).get('min_bbox_size', 30)
-            enable_small_colony_viz = bool(small_colony_mode and self.config.get('small_colony_filter', {}).get('label_as_growing', False))
+            enable_small_colony_viz = bool(
+                small_colony_mode
+                and self.config.get('small_colony_filter', {}).get('label_as_growing', False)
+                and multiclass_enabled
+            )
 
             # Create separate visualization for edge-only mode (dual mode enhancement)
             vis_image_edge_only = image.copy() if self.dual_mode_eval else None
@@ -5000,6 +4888,11 @@ class ProcessingWorker(QObject):
                     det.get('is_small_colony', False) or is_small_colony_by_size
                 )
                 match_type = det.get('match_type', 'unknown')
+                if not multiclass_enabled:
+                    if det.get('is_small_colony', False) or str(match_type).startswith('ignored_small'):
+                        continue
+                    if match_type not in ('tp', 'fp'):
+                        match_type = 'fp'
 
                 if is_small_colony:
                     # 【小菌落】灰色显示，不参与评估
@@ -5008,15 +4901,21 @@ class ProcessingWorker(QObject):
                     thickness = 2
                 elif match_type == 'tp':
                     color_rgb = detection_type_colors['tp']  # Green for correct detection
-                    label = f"Class {det.get('matched_gt_class', det.get('class', '?'))}"
+                    if multiclass_enabled:
+                        label = f"Class {det.get('matched_gt_class', det.get('class', '?'))}"
+                    else:
+                        label = "TP"
                     thickness = 3
                 elif match_type == 'fp':
                     color_rgb = detection_type_colors['fp']  # Red for false positive
-                    label = f"FP (Class {det.get('class', '?')})"
+                    if multiclass_enabled:
+                        label = f"FP (Class {det.get('class', '?')})"
+                    else:
+                        label = "FP"
                     thickness = 3
                 else:
                     color_rgb = detection_type_colors['unknown']  # Yellow for unknown
-                    label = f"Unknown"
+                    label = "Unknown"
                     thickness = 2
 
                 # Draw bounding box
@@ -5035,25 +4934,26 @@ class ProcessingWorker(QObject):
                 cv2_put_text(vis_image, label, (label_x+5, label_y-5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-                # 【新增】确定类别ID和颜色（用于右上角小方块）
-                class_id = det.get('class', 1)  # 默认类别1
-                if str(class_id) in class_labels:
-                    class_color = class_colors[(int(class_id) - 1) % len(class_colors)]
-                else:
-                    class_color = [128, 128, 128]  # 默认灰色
+                if multiclass_enabled:
+                    # 【新增】确定类别ID和颜色（用于右上角小方块）
+                    class_id = det.get('class', 1)  # 默认类别1
+                    if str(class_id) in class_labels:
+                        class_color = class_colors[(int(class_id) - 1) % len(class_colors)]
+                    else:
+                        class_color = [128, 128, 128]  # 默认灰色
 
-                # 【新增】绘制右上角类别标识小方块
-                square_size = 15
-                square_x1 = x2 - square_size
-                square_y1 = y1
-                square_x2 = x2
-                square_y2 = y1 + square_size
+                    # 【新增】绘制右上角类别标识小方块
+                    square_size = 15
+                    square_x1 = x2 - square_size
+                    square_y1 = y1
+                    square_x2 = x2
+                    square_y2 = y1 + square_size
 
-                # 确保小方块在图像范围内
-                if square_x1 >= 0 and square_y2 <= h:
-                    cv2.rectangle(vis_image, (square_x1, square_y1), (square_x2, square_y2), class_color, -1)
-                    # 小方块黑色边框
-                    cv2.rectangle(vis_image, (square_x1, square_y1), (square_x2, square_y2), (0, 0, 0), 1)
+                    # 确保小方块在图像范围内
+                    if square_x1 >= 0 and square_y2 <= h:
+                        cv2.rectangle(vis_image, (square_x1, square_y1), (square_x2, square_y2), class_color, -1)
+                        # 小方块黑色边框
+                        cv2.rectangle(vis_image, (square_x1, square_y1), (square_x2, square_y2), (0, 0, 0), 1)
 
                 # Draw on edge-only visualization if in dual mode
                 if vis_image_edge_only is not None:
@@ -5111,7 +5011,10 @@ class ProcessingWorker(QObject):
                 gx1, gy1 = max(0, gx1), max(0, gy1)
                 gx2, gy2 = min(w-1, gx2), min(h-1, gy2)
                 cv2.rectangle(vis_image, (gx1, gy1), (gx2, gy2), missed_gt_color, 2)
-                gt_label = f"FN GT {gt_item.get('class', '?')}"
+                if multiclass_enabled:
+                    gt_label = f"FN GT {gt_item.get('class', '?')}"
+                else:
+                    gt_label = "FN"
                 cv2_put_text(
                     vis_image,
                     gt_label,
@@ -5161,8 +5064,11 @@ class ProcessingWorker(QObject):
                 edge_output_path = vis_output_dir / f"{seq_id}_edge_only_visualization.jpg"
                 cv2.imwrite(str(edge_output_path), edge_vis_output)
 
-            # 【新增】添加右上角综合图例（英文）
-            self._add_comprehensive_legend(vis_image, h, w, include_small_colony=enable_small_colony_viz)
+            # 【新增】添加图例
+            if multiclass_enabled:
+                self._add_comprehensive_legend(vis_image, h, w, include_small_colony=enable_small_colony_viz)
+            else:
+                self._add_evaluation_legend(vis_image)
 
             # 保存标准可视化（确保图例已绘制）
             cv2.imwrite(str(output_path), vis_image)
@@ -5222,8 +5128,9 @@ class ProcessingWorker(QObject):
         try:
             h, w = image.shape[:2]
             legend_items = [
-                ("TP (True Positive)", (0, 255, 0)),      # 绿色 - 正确预测
-                ("FP (False Positive)", (0, 0, 255))     # 红色 - 错误预测 (包括定位和分类错误)
+                ("TP (True Positive)", (0, 255, 0)),      # 绿色 - 正确匹配
+                ("FP (False Positive)", (0, 0, 255)),     # 红色 - 误检
+                ("FN (False Negative)", (255, 140, 0)),   # 橙色 - 漏检
             ]
             
             # 增大尺寸
@@ -5416,7 +5323,7 @@ class ProcessingWorker(QObject):
                 if not iou_sweep:
                     with open(self.eval_csv_report_path, 'w', newline='', encoding='utf-8-sig') as f:
                         writer = csv.writer(f)
-                        writer.writerow(["序列ID", "真值总数", "检测总数", "TP (定位且分类正确)", "FP (定位或分类错误)", "FN (漏检)", "召回率 (Recall)", "精确率 (Precision)", "F1分数", "HCP耗时(s)", "二分类耗时(s)", "多分类耗时(s)"])
+                        writer.writerow(["序列ID", "真值总数", "检测总数", "TP (匹配)", "FP (误检)", "FN (漏检)", "召回率 (Recall)", "精确率 (Precision)", "F1分数", "HCP耗时(s)", "二分类耗时(s)", "多分类耗时(s)"])
                 else:
                     with open(self.eval_csv_report_path, 'w', newline='', encoding='utf-8-sig') as f:
                         f.write("IoU扫描评估已启用。详细结果请参见各 'evaluation_iou_sweep_report*.csv' 文件。\n")
@@ -5559,6 +5466,9 @@ class ProcessingWorker(QObject):
             evaluation_results = successful_results + failed_sequences
             
             class_labels_cfg = self.config.get('class_labels', {})
+            multiclass_enabled = any(
+                bool(res.get('multiclass_enabled')) for res in successful_results if isinstance(res, dict)
+            )
             enhanced_config = {
                 'evaluation_settings': self.config.get('evaluation_settings', {}),
                 'model_paths': self.config.get('models', {}),
@@ -5567,6 +5477,7 @@ class ProcessingWorker(QObject):
                 'class_labels': class_labels_cfg,
                 'dataset_categories': self.config.get('dataset_categories', []),
                 'category_id_to_name': self.config.get('category_id_to_name', {}),
+                'multiclass_enabled': multiclass_enabled,
             }
             
             def _aggregate_sweep_results_for_matching(matching_mode: str):
@@ -5634,14 +5545,22 @@ class ProcessingWorker(QObject):
             self._emit_log("  生成包含8个工作表的全面详细数据...")
             try:
                 from architecture.comprehensive_evaluation_reporter import ComprehensiveEvaluationReporter
-                label_map_for_report = resolve_class_labels(self.config, 'en')
+                label_map_for_report = {}
+                cats = self.config.get('dataset_categories', [])
+                if isinstance(cats, list):
+                    for c in cats:
+                        if isinstance(c, dict) and "id" in c and "name" in c:
+                            label_map_for_report[str(c["id"])] = str(c["name"])
                 if not label_map_for_report:
-                    label_map_for_report = DEFAULT_CLASS_LABELS['en_us']
+                    cat_map = self.config.get('category_id_to_name')
+                    if isinstance(cat_map, dict):
+                        label_map_for_report = {str(k): str(v) for k, v in cat_map.items()}
                 try:
                     comprehensive_reporter = ComprehensiveEvaluationReporter(
                         eval_run_output_dir,
                         language=enhancer_language,
-                        class_label_map=label_map_for_report
+                        class_label_map=label_map_for_report,
+                        multiclass_enabled=multiclass_enabled,
                     )
                 except TypeError:
                     comprehensive_reporter = ComprehensiveEvaluationReporter(eval_run_output_dir)
@@ -5650,20 +5569,20 @@ class ProcessingWorker(QObject):
                     iou_sweep_results=iou_sweep_stats_by_mode.get('overall') if isinstance(iou_sweep_stats_by_mode, dict) else None
                 )
                 self._emit_log(f"✓ 全面详细报告: {excel_path}")
-                self._emit_log("  包含8个工作表: 序列基础指标, IoU Sweep详情, 分类详情, 检测详情, PR曲线数据, 汇总统计, 类别级别汇总, IoU Sweep汇总")
+                if multiclass_enabled:
+                    self._emit_log("  包含8个工作表: 序列基础指标, IoU Sweep详情, 分类详情, 检测详情, PR曲线数据, 汇总统计, 类别级别汇总, IoU Sweep汇总")
+                else:
+                    self._emit_log("  包含基础工作表: 序列基础指标, IoU Sweep详情, 检测详情, 汇总统计")
             except Exception as e:
                 self._emit_log(f"生成全面详细报告失败: {e}")
                 self._emit_log(traceback.format_exc())
-
-            # === 双模式对比分析 ===
-            dual_mode_results = self._perform_dual_mode_comparison_analysis(successful_results, eval_run_output_dir)
 
             # === 启用时序评估分析 ===
             advanced_eval_config = self.config.get('advanced_evaluation', {})
             enable_temporal_analysis = advanced_eval_config.get('enable_temporal_analysis', True)
 
-            # 时序评估使用双模式分析后的过滤结果
-            temporal_input_data = dual_mode_results.get('filtered_results', successful_results) if dual_mode_results else successful_results
+            # 时序评估使用本次评估的完整结果
+            temporal_input_data = successful_results
 
             if enable_temporal_analysis and len(temporal_input_data) > 0:
                 self._emit_log("  开始真实时间序列性能评估...")
@@ -6440,7 +6359,6 @@ class FOCUSTApp(QMainWindow if IS_GUI_AVAILABLE else QObject):
             cb_pr = getattr(self, "enable_pr_curves_checkbox", None)
             cb_map = getattr(self, "enable_map_checkbox", None)
             cb_temporal = getattr(self, "enable_temporal_checkbox", None)
-            cb_dual = getattr(self, "dual_mode_eval_checkbox", None)
             if cb_pr is not None and hasattr(cb_pr, "isChecked"):
                 try:
                     adv_cfg['enable_pr_curves'] = bool(cb_pr.isChecked())
@@ -6454,11 +6372,6 @@ class FOCUSTApp(QMainWindow if IS_GUI_AVAILABLE else QObject):
             if cb_temporal is not None and hasattr(cb_temporal, "isChecked"):
                 try:
                     adv_cfg['enable_temporal_analysis'] = bool(cb_temporal.isChecked())
-                except Exception:
-                    pass
-            if cb_dual is not None and hasattr(cb_dual, "isChecked"):
-                try:
-                    adv_cfg['enable_dual_mode_evaluation'] = bool(cb_dual.isChecked())
                 except Exception:
                     pass
 
@@ -6702,7 +6615,6 @@ class FOCUSTApp(QMainWindow if IS_GUI_AVAILABLE else QObject):
                         'enable_pr_curves': True,
                         'enable_map_calculation': True,
                         'enable_temporal_analysis': True,
-                        'enable_dual_mode_evaluation': False,  # 默认关闭双模式评估
                         'temporal_start_frame': 24,
                         'iou_thresholds_for_pr': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]
                     }
@@ -7363,14 +7275,6 @@ class FOCUSTApp(QMainWindow if IS_GUI_AVAILABLE else QObject):
         # 【修复】从配置文件加载时间分析设置
         self.enable_temporal_checkbox.setChecked(advanced_eval_config.get('enable_temporal_analysis', True))
         advanced_eval_layout.addWidget(self.enable_temporal_checkbox)
-
-        # 【新增】双模式评估选项
-        self.dual_mode_eval_checkbox = QCheckBox("双模式评估 | Dual Mode (小菌落过滤对比)")
-        self.dual_mode_eval_checkbox.setMinimumHeight(28)  # 【优化】统一控件高度
-        self.dual_mode_eval_checkbox.setChecked(advanced_eval_config.get('enable_dual_mode_evaluation', False))
-        # 添加工具提示
-        self.dual_mode_eval_checkbox.setToolTip("启用双模式评估：分别运行启用和禁用小菌落过滤的配置，生成详细的对比报告，帮助分析小菌落过滤对检测效果的影响。")
-        advanced_eval_layout.addWidget(self.dual_mode_eval_checkbox)
 
         advanced_eval_group.setLayout(advanced_eval_layout)
 
@@ -10776,7 +10680,6 @@ class FOCUSTApp(QMainWindow if IS_GUI_AVAILABLE else QObject):
             'enable_pr_curves': self.enable_pr_curves_checkbox.isChecked(),
             'enable_map_calculation': self.enable_map_checkbox.isChecked(),
             'enable_temporal_analysis': self.enable_temporal_checkbox.isChecked(),
-            'enable_dual_mode_evaluation': self.dual_mode_eval_checkbox.isChecked(),
             'temporal_start_frame': 24,
             'iou_thresholds_for_pr': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]
         }

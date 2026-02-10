@@ -112,6 +112,7 @@ class ComprehensiveEvaluationReporter:
         output_dir: Path,
         language: str = "zh_cn",
         class_label_map: Optional[Dict[str, str]] = None,
+        multiclass_enabled: Optional[bool] = None,
     ) -> None:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -119,6 +120,7 @@ class ComprehensiveEvaluationReporter:
         self.language = self._normalize_language(language)
         self.texts = TEXTS.get(self.language, TEXTS["en_us"])
         self.class_label_map = class_label_map or {}
+        self.multiclass_enabled = True if multiclass_enabled is None else bool(multiclass_enabled)
 
     def generate_complete_report(
         self,
@@ -137,9 +139,11 @@ class ComprehensiveEvaluationReporter:
             self._write_sequence_basic_metrics(evaluation_results, writer)
             self._write_detection_only_metrics(evaluation_results, writer)
             self._write_sequence_detection_details(evaluation_results, writer)
-            self._write_sequence_classification_details(evaluation_results, writer)
+            if self.multiclass_enabled:
+                self._write_sequence_classification_details(evaluation_results, writer)
             self._write_summary_statistics(evaluation_results, writer)
-            self._write_pr_curve_summary(evaluation_results, writer)
+            if self.multiclass_enabled:
+                self._write_pr_curve_summary(evaluation_results, writer)
 
             if iou_sweep_results:
                 self._write_iou_sweep_summary(iou_sweep_results, writer)
@@ -183,7 +187,10 @@ class ComprehensiveEvaluationReporter:
             )
 
         df = pd.DataFrame(rows)
-        df.to_excel(writer, sheet_name=self._t("sheet_sequence_metrics"), index=False)
+        sheet_name = self._t("sheet_sequence_metrics")
+        if not self.multiclass_enabled:
+            sheet_name = self._conditional_text("Sequence Metrics (IoU)", "序列指标（仅 IoU）")
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
 
     def _write_sequence_detection_details(self, results: List[Dict[str, Any]], writer: pd.ExcelWriter) -> None:
         records: List[Dict[str, Any]] = []
@@ -447,4 +454,3 @@ class ComprehensiveEvaluationReporter:
 
 
 __all__ = ["ComprehensiveEvaluationReporter"]
-

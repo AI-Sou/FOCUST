@@ -44,11 +44,14 @@ def _load_eval_config(eval_dir: Path) -> Dict[str, Any]:
 
 def _collect_class_ids(results: List[Dict[str, Any]], config: Dict[str, Any]) -> List[str]:
     class_ids = set()
-    labels_cfg = config.get('class_labels', {}) if isinstance(config, dict) else {}
-    if isinstance(labels_cfg, dict):
-        for mapping in labels_cfg.values():
-            if isinstance(mapping, dict):
-                class_ids.update(str(k) for k in mapping.keys())
+    cats = config.get('dataset_categories') if isinstance(config, dict) else None
+    if isinstance(cats, list):
+        for c in cats:
+            if isinstance(c, dict) and "id" in c:
+                class_ids.add(str(c["id"]))
+    cat_map = config.get('category_id_to_name') if isinstance(config, dict) else None
+    if isinstance(cat_map, dict):
+        class_ids.update(str(k) for k in cat_map.keys())
     for res in results:
         advanced = res.get("advanced_results", {}) or {}
         fixed = advanced.get("fixed_thresholds", {}) or {}
@@ -128,7 +131,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument('--eval-dir', required=True, help='Path to evaluation_run_*/ directory')
     p.add_argument('--results-json', default=None, help='Path to successful_results_full.json (defaults to <eval-dir>/successful_results_full.json)')
     p.add_argument('--summary-json', default=None, help='Optional explicit evaluation_summary.json if full results are unavailable')
-    p.add_argument('--mode', default='auto', choices=['auto', 'with_filter', 'without_filter', 'root'],
+    p.add_argument('--mode', default='auto', choices=['auto', 'root'],
                    help='When falling back to evaluation_summary.json, prefer this branch')
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--include', default=None, help='Comma-separated sequence IDs to include')
@@ -202,32 +205,8 @@ def main() -> None:
     if language == 'zh':
         language = 'zh_cn'
 
-    def _is_with_filter(entry: Dict[str, Any]) -> Optional[bool]:
-        # Prefer explicit boolean if available
-        if 'small_colony_filter_enabled' in entry:
-            val = entry.get('small_colony_filter_enabled')
-            if isinstance(val, bool):
-                return val
-        # Fallback to mode/evaluation_mode string tokens
-        mode = str(entry.get('evaluation_mode') or entry.get('mode') or '').lower()
-        if any(t in mode for t in ['with_filter', 'enabled', '鍚敤']):
-            return True
-        if any(t in mode for t in ['without_filter', 'disabled', '绂佺敤']):
-            return False
-        return None
-
-    # Split into dual-mode sets
-    with_filter_results: List[Dict[str, Any]] = []
-    without_filter_results: List[Dict[str, Any]] = []
-    unknown_mode_results: List[Dict[str, Any]] = []
-    for r in filtered:
-        flag = _is_with_filter(r)
-        if flag is True:
-            with_filter_results.append(r)
-        elif flag is False:
-            without_filter_results.append(r)
-        else:
-            unknown_mode_results.append(r)
+    multiclass_enabled = any(bool(r.get("multiclass_enabled")) for r in filtered if isinstance(r, dict))
+    config["multiclass_enabled"] = multiclass_enabled
 
     # Helper to run enhancer
     def _run_enhancer(subdir: Path, data: List[Dict[str, Any]], matching_mode: Optional[str] = None):
@@ -242,9 +221,7 @@ def main() -> None:
             matching_mode=matching_mode,
         )
 
-    outputs: Dict[str, Any] = {
-        "unknown_mode_count": len(unknown_mode_results),
-    }
+    outputs: Dict[str, Any] = {}
 
     matching_modes: List[str]
     if args.matching == "both":
@@ -252,100 +229,20 @@ def main() -> None:
     else:
         matching_modes = [args.matching]
 
-    # Generate per-mode reports (and per matching mode) if available
+    # Generate reports per matching mode
     for mm in matching_modes:
-        if with_filter_results:
-            _run_enhancer(out_dir / f"dual_mode_with_filter_{mm}", with_filter_results, matching_mode=mm)
-        if without_filter_results:
-            _run_enhancer(out_dir / f"dual_mode_without_filter_{mm}", without_filter_results, matching_mode=mm)
+        report_dir = out_dir / f"reports_{mm}"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        _run_enhancer(report_dir, filtered, matching_mode=mm)
+        outputs[mm] = str(report_dir)
 
-    # Build a simple comparison when both sets present
-    if with_filter_results and without_filter_results:
-        def _agg_metrics(items: List[Dict[str, Any]]) -> Dict[str, Any]:
-            total_tp = total_fp = total_fn = total_det = total_gt = 0
-            for it in items:
-                m = it.get('final_metrics') or it.get('metrics') or {}
-                total_tp += int(m.get('tp', 0))
-                total_fp += int(m.get('fp', 0))
-                total_fn += int(m.get('fn', 0))
-                base = it.get('metrics') or {}
-                total_det += int(base.get('total_detections', 0))
-                total_gt += int(base.get('total_gt', 0))
-            prec = (total_tp / (total_tp + total_fp)) if (total_tp + total_fp) else 0.0
-            rec = (total_tp / (total_tp + total_fn)) if (total_tp + total_fn) else 0.0
-            f1 = (2*prec*rec/(prec+rec)) if (prec+rec) else 0.0
-            return {
-                'total_detections': total_det,
-                'total_gt': total_gt,
-                'total_tp': total_tp,
-                'total_fp': total_fp,
-                'total_fn': total_fn,
-                'precision': prec,
-                'recall': rec,
-                'f1_score': f1,
-            }
-
-        with_stats = _agg_metrics(with_filter_results)
-        without_stats = _agg_metrics(without_filter_results)
-
-        comp = {
-            'with_filter': with_stats,
-            'without_filter': without_stats,
-            'sequence_counts': {
-                'with_filter': len(with_filter_results),
-                'without_filter': len(without_filter_results),
-            }
-        }
-        # Save comparison artifacts
-        (out_dir / 'dual_mode_comparison_data.json').write_text(
-            json.dumps(comp, ensure_ascii=False, indent=2), encoding='utf-8'
-        )
-        rpt = out_dir / 'dual_mode_comparison_report.txt'
-        with rpt.open('w', encoding='utf-8') as f:
-            f.write('='*80 + '\n')
-            f.write('鍙屾ā寮忚瘎浼板姣旀姤鍛?(绛涢€夊悗閲嶇敓鎴?\n')
-            f.write('='*80 + '\n\n')
-            f.write(f"with_filter 搴忓垪鏁? {len(with_filter_results)}\n")
-            f.write(f"without_filter 搴忓垪鏁? {len(without_filter_results)}\n\n")
-            f.write(f"{'鎸囨爣':<18} {'鍚敤杩囨护':<18} {'绂佺敤杩囨护':<18} {'宸紓':<18}\n")
-            def _fmt(v):
-                return f"{v:.4f}" if isinstance(v, float) else str(v)
-            for name, key in [
-                ('鎬绘娴嬫暟', 'total_detections'),
-                ('鐪熼槼鎬ф暟', 'total_tp'),
-                ('鍋囬槼鎬ф暟', 'total_fp'),
-                ('鍋囬槾鎬ф暟', 'total_fn'),
-                ('Precision', 'precision'),
-                ('Recall', 'recall'),
-                ('F1', 'f1_score'),
-            ]:
-                w = with_stats.get(key, 0)
-                wo = without_stats.get(key, 0)
-                diff = (w - wo)
-                f.write(f"{name:<18} {_fmt(w):<18} {_fmt(wo):<18} {_fmt(diff):<18}\n")
-        # README under summary directory
-        summary_dir = out_dir / 'dual_mode_summary'
-        summary_dir.mkdir(parents=True, exist_ok=True)
-        (summary_dir / 'README.txt').write_text(
-            "鍙屾ā寮忕瓫閫夊悗閲嶇敓鎴愮粨鏋淺n" +
-            f"with_filter 杈撳嚭: {out_dir / 'dual_mode_with_filter'}\n" +
-            f"without_filter 杈撳嚭: {out_dir / 'dual_mode_without_filter'}\n" +
-            f"瀵规瘮鎶ュ憡: {rpt}\n" +
-            f"瀵规瘮鏁版嵁: {out_dir / 'dual_mode_comparison_data.json'}\n",
-            encoding='utf-8'
-        )
-        outputs['comparison'] = {
-            'report': str(rpt),
-            'data': str(out_dir / 'dual_mode_comparison_data.json'),
-            'summary_dir': str(summary_dir),
-        }
-
-    # Export fixed-threshold per-GT details for the filtered set (if available).
-    try:
-        class_ids = _collect_class_ids(filtered, config)
-        _export_fixed_threshold_details(filtered, out_dir, class_ids)
-    except Exception as exc:
-        print(f"[WARN] Failed to export fixed-threshold details: {exc}")
+    # Export fixed-threshold per-GT details for the filtered set (multiclass only).
+    if multiclass_enabled:
+        try:
+            class_ids = _collect_class_ids(filtered, config)
+            _export_fixed_threshold_details(filtered, out_dir, class_ids)
+        except Exception as exc:
+            print(f"[WARN] Failed to export fixed-threshold details: {exc}")
 
     print(json.dumps({
         'status': 'success',

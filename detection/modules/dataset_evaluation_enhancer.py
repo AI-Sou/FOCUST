@@ -222,28 +222,45 @@ class DatasetEvaluationEnhancer:
         report_dir.mkdir(parents=True, exist_ok=True)
 
         successes, failures = self._split_results(evaluation_results)
-        class_label_map = self._build_class_label_map(config, successes)
+        multiclass_enabled = self._infer_multiclass_enabled(config, successes)
+        class_label_map = self._build_class_label_map(config, successes) if multiclass_enabled else {}
         reports_cfg = (config or {}).get("reports", {}) if isinstance(config, dict) else {}
         only_tables_charts = bool(reports_cfg.get("only_tables_and_charts", False))
 
         summary = self._build_summary(successes, failures)
-        dual_mode = self._aggregate_dual_mode(successes)
+        summary["multiclass_enabled"] = multiclass_enabled
+        if not multiclass_enabled:
+            summary["per_sequence_classification"] = []
+
+        dual_mode = {}
         iou_summary = self._aggregate_iou_sweep(successes, dual_mode, iou_sweep_results)
-        pr_map_payload = self._prepare_pr_map_payload(successes, class_label_map)
-        summary["class_metrics"] = pr_map_payload.get("average_precision_per_class", {})
+        pr_map_payload = self._prepare_pr_map_payload(successes, class_label_map) if multiclass_enabled else {}
+        summary["class_metrics"] = pr_map_payload.get("average_precision_per_class", {}) if multiclass_enabled else {}
         summary["iou_sweep"] = iou_summary
         # 新增：检测口径（IoU-only）与按类别聚合
         summary["detection_only_stats"] = self._aggregate_detection_counts_detection_only(successes)
-        summary["per_class_strict"] = self._aggregate_per_class_strict(successes, class_label_map)
-        summary["per_class_iou_only"] = self._aggregate_per_class_detection_only(successes, class_label_map)
-        summary["per_sequence_class_iou_0_1"] = self._collect_per_sequence_fixed_threshold(successes, "iou_0_1", class_label_map)
-        summary["per_sequence_class_center_50"] = self._collect_per_sequence_fixed_threshold(successes, "center_distance_50", class_label_map)
-        summary["per_class_iou_0_1"] = self._aggregate_fixed_threshold_per_class(successes, "iou_0_1", class_label_map)
-        summary["per_class_center_50"] = self._aggregate_fixed_threshold_per_class(successes, "center_distance_50", class_label_map)
-        summary["iou_bins_by_class"] = self._aggregate_bins_by_class(successes, "iou_0_1", "iou_bins_by_class", class_label_map)
-        summary["center_distance_bins_by_class"] = self._aggregate_bins_by_class(successes, "center_distance_50", "distance_bins_by_class", class_label_map)
-        summary["classification_only_per_sequence"] = self._collect_classification_only_per_sequence(successes, class_label_map)
-        summary["classification_only_per_class"] = self._aggregate_classification_only_per_class(successes, class_label_map)
+        if multiclass_enabled:
+            summary["per_class_strict"] = self._aggregate_per_class_strict(successes, class_label_map)
+            summary["per_class_iou_only"] = self._aggregate_per_class_detection_only(successes, class_label_map)
+            summary["per_sequence_class_iou_0_1"] = self._collect_per_sequence_fixed_threshold(successes, "iou_0_1", class_label_map)
+            summary["per_sequence_class_center_50"] = self._collect_per_sequence_fixed_threshold(successes, "center_distance_50", class_label_map)
+            summary["per_class_iou_0_1"] = self._aggregate_fixed_threshold_per_class(successes, "iou_0_1", class_label_map)
+            summary["per_class_center_50"] = self._aggregate_fixed_threshold_per_class(successes, "center_distance_50", class_label_map)
+            summary["iou_bins_by_class"] = self._aggregate_bins_by_class(successes, "iou_0_1", "iou_bins_by_class", class_label_map)
+            summary["center_distance_bins_by_class"] = self._aggregate_bins_by_class(successes, "center_distance_50", "distance_bins_by_class", class_label_map)
+            summary["classification_only_per_sequence"] = self._collect_classification_only_per_sequence(successes, class_label_map)
+            summary["classification_only_per_class"] = self._aggregate_classification_only_per_class(successes, class_label_map)
+        else:
+            summary["per_class_strict"] = {}
+            summary["per_class_iou_only"] = {}
+            summary["per_sequence_class_iou_0_1"] = []
+            summary["per_sequence_class_center_50"] = []
+            summary["per_class_iou_0_1"] = {}
+            summary["per_class_center_50"] = {}
+            summary["iou_bins_by_class"] = {}
+            summary["center_distance_bins_by_class"] = {}
+            summary["classification_only_per_sequence"] = []
+            summary["classification_only_per_class"] = {}
         summary["dual_mode"] = dual_mode
         summary["overall_definition_text"] = self._t("overall_definition")
         summary["tables"] = self._build_table_registry(summary)
@@ -831,6 +848,7 @@ class DatasetEvaluationEnhancer:
 
     def _build_table_registry(self, summary: Dict[str, Any]) -> Dict[str, Any]:
         tables: Dict[str, Dict[str, Any]] = {}
+        multiclass_enabled = bool(summary.get("multiclass_enabled"))
 
         float_keys = {"overall_precision", "overall_recall", "overall_f1"}
 
@@ -906,10 +924,17 @@ class DatasetEvaluationEnhancer:
         ]
 
         tables["sequence_iou_and_class"] = {
-            "title": self._t("sequence_metrics_strict"),
-            "description": self._conditional_text(
-                "Requires IoU overlap and class agreement for every detection.",
-                "需要同时满足 IoU 与类别匹配的检测。",
+            "title": self._t("sequence_metrics_strict") if multiclass_enabled else self._conditional_text("Per-sequence metrics", "序列级指标"),
+            "description": (
+                self._conditional_text(
+                    "Requires IoU overlap and class agreement for every detection.",
+                    "需要同时满足 IoU 与类别匹配的检测。",
+                )
+                if multiclass_enabled
+                else self._conditional_text(
+                    "Geometric matching only (IoU/center-distance).",
+                    "仅基于几何匹配（IoU/中心距离）。",
+                )
             ),
             "columns": seq_columns,
             "rows": _format_sequence_rows(summary.get("per_sequence_metrics", [])),
@@ -926,7 +951,7 @@ class DatasetEvaluationEnhancer:
         }
 
         tables["overall_iou_and_class"] = {
-            "title": self._t("overall_metrics_section"),
+            "title": self._t("overall_metrics_section") if multiclass_enabled else self._conditional_text("Overall metrics", "总体指标"),
             "columns": kv_columns,
             "rows": _kv_rows(summary.get("detection_stats", {})),
         }
@@ -940,6 +965,9 @@ class DatasetEvaluationEnhancer:
             "columns": kv_columns,
             "rows": _kv_rows(summary.get("detection_only_stats", {})),
         }
+
+        if not multiclass_enabled:
+            return tables
 
         per_class_strict = summary.get("per_class_strict", {}) or {}
         strict_rows = [
@@ -1156,27 +1184,31 @@ class DatasetEvaluationEnhancer:
         dual_mode: Optional[Dict[str, Any]],
         iou_summary: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        multiclass_enabled = bool(summary.get("multiclass_enabled"))
         payload = {
             "per_sequence_metrics": summary.get("per_sequence_metrics", []),
             "per_sequence_metrics_detection_only": summary.get("per_sequence_metrics_detection_only", []),
             "processing_time_series": summary.get("processing_time_series", []),
             "detection_stats": summary.get("detection_stats", {}),
             "detection_only_stats": summary.get("detection_only_stats", {}),
-            "per_class_strict": summary.get("per_class_strict", {}),
-            "per_class_iou_only": summary.get("per_class_iou_only", {}),
-            "per_sequence_class_iou_0_1": summary.get("per_sequence_class_iou_0_1", []),
-            "per_sequence_class_center_50": summary.get("per_sequence_class_center_50", []),
-            "per_class_iou_0_1": summary.get("per_class_iou_0_1", {}),
-            "per_class_center_50": summary.get("per_class_center_50", {}),
-            "iou_bins_by_class": summary.get("iou_bins_by_class", {}),
-            "center_distance_bins_by_class": summary.get("center_distance_bins_by_class", {}),
-            "classification_only_per_sequence": summary.get("classification_only_per_sequence", []),
-            "classification_only_per_class": summary.get("classification_only_per_class", {}),
-            "class_metrics": summary.get("class_metrics", {}),
             "dual_mode": dual_mode or {},
             "iou_sweep": iou_summary or {},
-            "pr_map_payload": pr_map_payload or {},
         }
+        if multiclass_enabled:
+            payload.update({
+                "per_class_strict": summary.get("per_class_strict", {}),
+                "per_class_iou_only": summary.get("per_class_iou_only", {}),
+                "per_sequence_class_iou_0_1": summary.get("per_sequence_class_iou_0_1", []),
+                "per_sequence_class_center_50": summary.get("per_sequence_class_center_50", []),
+                "per_class_iou_0_1": summary.get("per_class_iou_0_1", {}),
+                "per_class_center_50": summary.get("per_class_center_50", {}),
+                "iou_bins_by_class": summary.get("iou_bins_by_class", {}),
+                "center_distance_bins_by_class": summary.get("center_distance_bins_by_class", {}),
+                "classification_only_per_sequence": summary.get("classification_only_per_sequence", []),
+                "classification_only_per_class": summary.get("classification_only_per_class", {}),
+                "class_metrics": summary.get("class_metrics", {}),
+                "pr_map_payload": pr_map_payload or {},
+            })
         return payload
 
     def _processing_stats(self, values: List[float]) -> Dict[str, float]:
@@ -1260,17 +1292,9 @@ class DatasetEvaluationEnhancer:
             return sweep_totals
 
         overall_stats = collect(successes)
-        with_filter_stats = collect(
-            [res for res in successes if res.get("dual_mode") and res.get("small_colony_filter_enabled")]
-        )
-        without_filter_stats = collect(
-            [res for res in successes if res.get("dual_mode") and not res.get("small_colony_filter_enabled")]
-        )
 
         aggregated = {
             "overall": overall_stats,
-            "with_filter": with_filter_stats,
-            "without_filter": without_filter_stats,
         }
 
         if precomputed:
@@ -1516,11 +1540,9 @@ class DatasetEvaluationEnhancer:
             lines.append("</ul>")
         lines.append("</div>")
         render_structured_table("overall_iou_only")
-        # Dual-mode comparison
-        lines.append(f"<div class='section'><h2>{self._t('dual_mode_section')}</h2>")
-        if not dual_mode.get("with_filter") or not dual_mode.get("without_filter"):
-            lines.append(f"<p>{self._t('dual_mode_not_available')}</p>")
-        else:
+        # Dual-mode comparison (optional; removed by default)
+        if dual_mode.get("with_filter") and dual_mode.get("without_filter"):
+            lines.append(f"<div class='section'><h2>{self._t('dual_mode_section')}</h2>")
             lines.append("<table>")
             lines.append(
                 f"<tr><th>{self._t('dual_mode_table_header_metric')}</th>"
@@ -1557,7 +1579,7 @@ class DatasetEvaluationEnhancer:
                     )
             lines.append("</table>")
             lines.append(f"<p class='note'>{self._t('dual_mode_scatter_note')}</p>")
-        lines.append("</div>")
+            lines.append("</div>")
 
         # IoU sweep summary
         lines.append(f"<div class='section'><h2>{self._t('iou_sweep_section')}</h2>")
@@ -1675,11 +1697,15 @@ class DatasetEvaluationEnhancer:
     ) -> None:
         if pd is None:
             return
+        multiclass_enabled = bool(summary.get("multiclass_enabled"))
         with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
             seq_df = pd.DataFrame(summary.get("per_sequence_metrics", []))
+            seq_sheet = ("序列指标（定位+分类）" if self.language == "zh_cn" else "Sequence Metrics")
+            if not multiclass_enabled:
+                seq_sheet = ("序列指标" if self.language == "zh_cn" else "Sequence Metrics (IoU)")
             seq_df.to_excel(
                 writer,
-                sheet_name=("序列指标（定位+分类）" if self.language == "zh_cn" else "Sequence Metrics"),
+                sheet_name=seq_sheet,
                 index=False,
             )
             # 新增：IoU-only的序列表
@@ -1729,7 +1755,11 @@ class DatasetEvaluationEnhancer:
             )
             detection_df.to_excel(
                 writer,
-                sheet_name=("总体汇总（定位+分类）" if self.language == "zh_cn" else "Dataset Totals"),
+                sheet_name=(
+                    ("总体汇总（定位+分类）" if self.language == "zh_cn" else "Dataset Totals")
+                    if multiclass_enabled
+                    else ("总体汇总" if self.language == "zh_cn" else "Dataset Totals (IoU)")
+                ),
                 index=False,
             )
             # 新增：IoU-only总体
@@ -1818,182 +1848,183 @@ class DatasetEvaluationEnhancer:
                     df.sort_values("iou", inplace=True)
                     df.to_excel(writer, sheet_name=sheet_name[:30], index=False)
 
-            class_metrics = summary.get("class_metrics", {})
-            if class_metrics:
-                class_df = pd.DataFrame(
-                    [{"category": name, "ap_f1_proxy": value} for name, value in class_metrics.items()]
-                )
-                class_df.to_excel(
-                    writer,
-                    sheet_name=("按类别平均精度" if self.language == "zh_cn" else "Per Category AP"),
-                    index=False,
-                )
-
-            # 新增：按类别聚合的严格口径（IoU+分类）
-            by_class_strict = summary.get("per_class_strict", {})
-            if by_class_strict:
-                rows = []
-                for name, st in by_class_strict.items():
-                    rows.append({
-                        "category": name,
-                        "gt_count": st.get("gt_count", 0),
-                        "det_count": st.get("det_count", 0),
-                        "tp": st.get("tp", 0),
-                        "fp": st.get("fp", 0),
-                        "fn": st.get("fn", 0),
-                        "precision": st.get("precision", 0.0),
-                        "recall": st.get("recall", 0.0),
-                        "f1": st.get("f1", 0.0),
-                    })
-                pd.DataFrame(rows).to_excel(
-                    writer,
-                    sheet_name=("按类别汇总（定位+分类）" if self.language == "zh_cn" else "By Class (Strict)"),
-                    index=False,
-                )
-
-            # 新增：按类别聚合的IoU-only（以GT类别为组）
-            by_class_iou_only = summary.get("per_class_iou_only", {})
-            if by_class_iou_only:
-                rows2 = []
-                for name, st in by_class_iou_only.items():
-                    rows2.append({
-                        "category": name,
-                        "gt_count": st.get("gt_count", 0),
-                        "matched": st.get("matched", 0),
-                        "missed": st.get("missed", 0),
-                        "recall": st.get("recall", 0.0),
-                    })
-                pd.DataFrame(rows2).to_excel(
-                    writer,
-                    sheet_name=("按类别汇总（仅 IoU）" if self.language == "zh_cn" else "By Class (IoU-only)"),
-                    index=False,
-                )
-
-            # Fixed-threshold per-sequence per-class (IoU=0.1 / Center=50)
-            per_seq_iou = summary.get("per_sequence_class_iou_0_1", [])
-            if per_seq_iou:
-                pd.DataFrame(per_seq_iou).to_excel(
-                    writer,
-                    sheet_name=("序列类别(IoU0.1)" if self.language == "zh_cn" else "Seq-Class IoU0.1"),
-                    index=False,
-                )
-            per_seq_center = summary.get("per_sequence_class_center_50", [])
-            if per_seq_center:
-                pd.DataFrame(per_seq_center).to_excel(
-                    writer,
-                    sheet_name=("序列类别(中心50)" if self.language == "zh_cn" else "Seq-Class Center50"),
-                    index=False,
-                )
-
-            per_class_iou = summary.get("per_class_iou_0_1", {})
-            if per_class_iou:
-                pd.DataFrame(list(per_class_iou.values())).to_excel(
-                    writer,
-                    sheet_name=("按类别(IoU0.1)" if self.language == "zh_cn" else "By Class IoU0.1"),
-                    index=False,
-                )
-            per_class_center = summary.get("per_class_center_50", {})
-            if per_class_center:
-                pd.DataFrame(list(per_class_center.values())).to_excel(
-                    writer,
-                    sheet_name=("按类别(中心50)" if self.language == "zh_cn" else "By Class Center50"),
-                    index=False,
-                )
-
-            class_only_seq = summary.get("classification_only_per_sequence", [])
-            if class_only_seq:
-                pd.DataFrame(class_only_seq).to_excel(
-                    writer,
-                    sheet_name=("仅分类(序列)" if self.language == "zh_cn" else "ClassOnly Seq"),
-                    index=False,
-                )
-            class_only_class = summary.get("classification_only_per_class", {})
-            if class_only_class:
-                pd.DataFrame(list(class_only_class.values())).to_excel(
-                    writer,
-                    sheet_name=("仅分类(类别)" if self.language == "zh_cn" else "ClassOnly ByClass"),
-                    index=False,
-                )
-
-            iou_bins = summary.get("iou_bins_by_class", {})
-            if iou_bins:
-                rows = []
-                for row in iou_bins.values():
-                    entry = {"class_id": row.get("class_id"), "class_name": row.get("class_name")}
-                    bins = row.get("bins", {})
-                    if isinstance(bins, dict):
-                        entry.update(bins)
-                    rows.append(entry)
-                if rows:
-                    pd.DataFrame(rows).to_excel(
+            if multiclass_enabled:
+                class_metrics = summary.get("class_metrics", {})
+                if class_metrics:
+                    class_df = pd.DataFrame(
+                        [{"category": name, "ap_f1_proxy": value} for name, value in class_metrics.items()]
+                    )
+                    class_df.to_excel(
                         writer,
-                        sheet_name=("IoU分布" if self.language == "zh_cn" else "IoU Dist"),
+                        sheet_name=("按类别平均精度" if self.language == "zh_cn" else "Per Category AP"),
                         index=False,
                     )
 
-            center_bins = summary.get("center_distance_bins_by_class", {})
-            if center_bins:
-                rows = []
-                for row in center_bins.values():
-                    entry = {"class_id": row.get("class_id"), "class_name": row.get("class_name")}
-                    bins = row.get("bins", {})
-                    if isinstance(bins, dict):
-                        entry.update(bins)
-                    rows.append(entry)
-                if rows:
+                # 新增：按类别聚合的严格口径（IoU+分类）
+                by_class_strict = summary.get("per_class_strict", {})
+                if by_class_strict:
+                    rows = []
+                    for name, st in by_class_strict.items():
+                        rows.append({
+                            "category": name,
+                            "gt_count": st.get("gt_count", 0),
+                            "det_count": st.get("det_count", 0),
+                            "tp": st.get("tp", 0),
+                            "fp": st.get("fp", 0),
+                            "fn": st.get("fn", 0),
+                            "precision": st.get("precision", 0.0),
+                            "recall": st.get("recall", 0.0),
+                            "f1": st.get("f1", 0.0),
+                        })
                     pd.DataFrame(rows).to_excel(
                         writer,
-                        sheet_name=("距离分布" if self.language == "zh_cn" else "Center Dist"),
+                        sheet_name=("按类别汇总（定位+分类）" if self.language == "zh_cn" else "By Class (Strict)"),
                         index=False,
                     )
 
-            # New: per-sequence classification summary (correct/incorrect/missed/accuracy)
-            per_seq_class_rows: List[Dict[str, Any]] = []
-            for res in successes:
-                seq_id = res.get("seq_id") or res.get("sequence_id") or "unknown"
-                cls_stats = (res.get("advanced_results", {}) or {}).get("classification_statistics", {})
-                total_correct = float(0)
-                total_incorrect = float(0)
-                total_missed = float(0)
-                # cls_stats is a mapping class_id -> {correct, incorrect, missed}
-                for st in cls_stats.values():
-                    total_correct += float(st.get("correct", 0))
-                    total_incorrect += float(st.get("incorrect", 0))
-                    total_missed += float(st.get("missed", 0))
-                denom = (total_correct + total_incorrect)
-                accuracy = float(total_correct / denom) if denom > 0 else 0.0
-                per_seq_class_rows.append({
-                    "sequence_id": seq_id,
-                    "class_correct": total_correct,
-                    "class_incorrect": total_incorrect,
-                    "class_missed": total_missed,
-                    "class_accuracy": accuracy,
-                })
+                # 新增：按类别聚合的IoU-only（以GT类别为组）
+                by_class_iou_only = summary.get("per_class_iou_only", {})
+                if by_class_iou_only:
+                    rows2 = []
+                    for name, st in by_class_iou_only.items():
+                        rows2.append({
+                            "category": name,
+                            "gt_count": st.get("gt_count", 0),
+                            "matched": st.get("matched", 0),
+                            "missed": st.get("missed", 0),
+                            "recall": st.get("recall", 0.0),
+                        })
+                    pd.DataFrame(rows2).to_excel(
+                        writer,
+                        sheet_name=("按类别汇总（仅 IoU）" if self.language == "zh_cn" else "By Class (IoU-only)"),
+                        index=False,
+                    )
 
-            if per_seq_class_rows:
-                per_seq_class_df = pd.DataFrame(per_seq_class_rows)
-                per_seq_class_df.to_excel(
+                # Fixed-threshold per-sequence per-class (IoU=0.1 / Center=50)
+                per_seq_iou = summary.get("per_sequence_class_iou_0_1", [])
+                if per_seq_iou:
+                    pd.DataFrame(per_seq_iou).to_excel(
+                        writer,
+                        sheet_name=("序列类别(IoU0.1)" if self.language == "zh_cn" else "Seq-Class IoU0.1"),
+                        index=False,
+                    )
+                per_seq_center = summary.get("per_sequence_class_center_50", [])
+                if per_seq_center:
+                    pd.DataFrame(per_seq_center).to_excel(
+                        writer,
+                        sheet_name=("序列类别(中心50)" if self.language == "zh_cn" else "Seq-Class Center50"),
+                        index=False,
+                    )
+
+                per_class_iou = summary.get("per_class_iou_0_1", {})
+                if per_class_iou:
+                    pd.DataFrame(list(per_class_iou.values())).to_excel(
+                        writer,
+                        sheet_name=("按类别(IoU0.1)" if self.language == "zh_cn" else "By Class IoU0.1"),
+                        index=False,
+                    )
+                per_class_center = summary.get("per_class_center_50", {})
+                if per_class_center:
+                    pd.DataFrame(list(per_class_center.values())).to_excel(
+                        writer,
+                        sheet_name=("按类别(中心50)" if self.language == "zh_cn" else "By Class Center50"),
+                        index=False,
+                    )
+
+                class_only_seq = summary.get("classification_only_per_sequence", [])
+                if class_only_seq:
+                    pd.DataFrame(class_only_seq).to_excel(
+                        writer,
+                        sheet_name=("仅分类(序列)" if self.language == "zh_cn" else "ClassOnly Seq"),
+                        index=False,
+                    )
+                class_only_class = summary.get("classification_only_per_class", {})
+                if class_only_class:
+                    pd.DataFrame(list(class_only_class.values())).to_excel(
+                        writer,
+                        sheet_name=("仅分类(类别)" if self.language == "zh_cn" else "ClassOnly ByClass"),
+                        index=False,
+                    )
+
+                iou_bins = summary.get("iou_bins_by_class", {})
+                if iou_bins:
+                    rows = []
+                    for row in iou_bins.values():
+                        entry = {"class_id": row.get("class_id"), "class_name": row.get("class_name")}
+                        bins = row.get("bins", {})
+                        if isinstance(bins, dict):
+                            entry.update(bins)
+                        rows.append(entry)
+                    if rows:
+                        pd.DataFrame(rows).to_excel(
+                            writer,
+                            sheet_name=("IoU分布" if self.language == "zh_cn" else "IoU Dist"),
+                            index=False,
+                        )
+
+                center_bins = summary.get("center_distance_bins_by_class", {})
+                if center_bins:
+                    rows = []
+                    for row in center_bins.values():
+                        entry = {"class_id": row.get("class_id"), "class_name": row.get("class_name")}
+                        bins = row.get("bins", {})
+                        if isinstance(bins, dict):
+                            entry.update(bins)
+                        rows.append(entry)
+                    if rows:
+                        pd.DataFrame(rows).to_excel(
+                            writer,
+                            sheet_name=("距离分布" if self.language == "zh_cn" else "Center Dist"),
+                            index=False,
+                        )
+
+                # New: per-sequence classification summary (correct/incorrect/missed/accuracy)
+                per_seq_class_rows: List[Dict[str, Any]] = []
+                for res in successes:
+                    seq_id = res.get("seq_id") or res.get("sequence_id") or "unknown"
+                    cls_stats = (res.get("advanced_results", {}) or {}).get("classification_statistics", {})
+                    total_correct = float(0)
+                    total_incorrect = float(0)
+                    total_missed = float(0)
+                    # cls_stats is a mapping class_id -> {correct, incorrect, missed}
+                    for st in cls_stats.values():
+                        total_correct += float(st.get("correct", 0))
+                        total_incorrect += float(st.get("incorrect", 0))
+                        total_missed += float(st.get("missed", 0))
+                    denom = (total_correct + total_incorrect)
+                    accuracy = float(total_correct / denom) if denom > 0 else 0.0
+                    per_seq_class_rows.append({
+                        "sequence_id": seq_id,
+                        "class_correct": total_correct,
+                        "class_incorrect": total_incorrect,
+                        "class_missed": total_missed,
+                        "class_accuracy": accuracy,
+                    })
+
+                if per_seq_class_rows:
+                    per_seq_class_df = pd.DataFrame(per_seq_class_rows)
+                    per_seq_class_df.to_excel(
+                        writer,
+                        sheet_name=("序列级分类统计" if self.language == "zh_cn" else "Per-sequence Classification"),
+                        index=False,
+                    )
+
+                # New: overall classification totals across dataset
+                overall_correct = sum(r.get("class_correct", 0.0) for r in per_seq_class_rows)
+                overall_incorrect = sum(r.get("class_incorrect", 0.0) for r in per_seq_class_rows)
+                overall_missed = sum(r.get("class_missed", 0.0) for r in per_seq_class_rows)
+                overall_acc = overall_correct / (overall_correct + overall_incorrect) if (overall_correct + overall_incorrect) else 0.0
+                overall_class_df = pd.DataFrame([
+                    {"metric": "overall_class_correct", "value": overall_correct},
+                    {"metric": "overall_class_incorrect", "value": overall_incorrect},
+                    {"metric": "overall_class_missed", "value": overall_missed},
+                    {"metric": "overall_class_accuracy", "value": overall_acc},
+                ])
+                overall_class_df.to_excel(
                     writer,
-                    sheet_name=("序列级分类统计" if self.language == "zh_cn" else "Per-sequence Classification"),
+                    sheet_name=("总体分类汇总" if self.language == "zh_cn" else "Overall Classification Totals"),
                     index=False,
                 )
-
-            # New: overall classification totals across dataset
-            overall_correct = sum(r.get("class_correct", 0.0) for r in per_seq_class_rows)
-            overall_incorrect = sum(r.get("class_incorrect", 0.0) for r in per_seq_class_rows)
-            overall_missed = sum(r.get("class_missed", 0.0) for r in per_seq_class_rows)
-            overall_acc = overall_correct / (overall_correct + overall_incorrect) if (overall_correct + overall_incorrect) else 0.0
-            overall_class_df = pd.DataFrame([
-                {"metric": "overall_class_correct", "value": overall_correct},
-                {"metric": "overall_class_incorrect", "value": overall_incorrect},
-                {"metric": "overall_class_missed", "value": overall_missed},
-                {"metric": "overall_class_accuracy", "value": overall_acc},
-            ])
-            overall_class_df.to_excel(
-                writer,
-                sheet_name=("总体分类汇总" if self.language == "zh_cn" else "Overall Classification Totals"),
-                index=False,
-            )
     def _write_json(self, path: Path, data: Dict[str, Any]) -> None:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding=self.encoding)
 
@@ -2054,6 +2085,26 @@ class DatasetEvaluationEnhancer:
     # ------------------------------------------------------------------
     # Utility helpers
     # ------------------------------------------------------------------
+    def _infer_multiclass_enabled(
+        self,
+        config: Optional[Dict[str, Any]],
+        successes: Optional[List[Dict[str, Any]]],
+    ) -> bool:
+        if isinstance(config, dict) and "multiclass_enabled" in config:
+            try:
+                return bool(config.get("multiclass_enabled"))
+            except Exception:
+                pass
+        for res in successes or []:
+            if not isinstance(res, dict):
+                continue
+            if "multiclass_enabled" in res:
+                try:
+                    return bool(res.get("multiclass_enabled"))
+                except Exception:
+                    continue
+        return False
+
     def _build_class_label_map(self, config: Optional[Dict[str, Any]], successes: Optional[List[Dict[str, Any]]] = None) -> Dict[str, str]:
         # 1) Prefer dataset categories coming from the actual annotations.json.
         if config:
@@ -2082,32 +2133,7 @@ class DatasetEvaluationEnhancer:
                 cat_map = item.get("category_id_to_name")
                 if isinstance(cat_map, dict) and cat_map:
                     return {str(k): str(v) for k, v in cat_map.items()}
-
-        # 2) Otherwise fall back to explicit labels in config/server_det.json.
-        if config:
-            labels = config.get("class_labels")
-            if isinstance(labels, dict):
-                normalized = {
-                    str(k).lower().replace("-", "_"): v for k, v in labels.items() if isinstance(v, dict)
-                }
-                for key in ("en_us", "en", "default", "zh_cn"):
-                    if key in normalized and normalized[key]:
-                        return {str(k): str(v) for k, v in normalized[key].items()}
-        server_det = Path(__file__).resolve().parents[2] / "server_det.json"
-        if server_det.exists():
-            try:
-                data = json.loads(server_det.read_text(encoding=self.encoding))
-                labels = data.get("class_labels", {})
-                if isinstance(labels, dict):
-                    normalized = {
-                        str(k).lower().replace("-", "_"): v for k, v in labels.items() if isinstance(v, dict)
-                    }
-                    for key in ("en_us", "en", "default", "zh_cn"):
-                        if key in normalized and normalized[key]:
-                            return {str(k): str(v) for k, v in normalized[key].items()}
-            except Exception:
-                pass
-        return {str(i): f"Class {i}" for i in range(1, 21)}
+        return {}
 
     def _describe_mode(self, result: Dict[str, Any]) -> str:
         if result.get("dual_mode"):

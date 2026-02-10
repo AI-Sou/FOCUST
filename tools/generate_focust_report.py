@@ -230,17 +230,11 @@ def build_basic_report(eval_dir: Path, output_path: Path, iou_key: float = 0.5) 
     summary_json = read_json(eval_dir / "evaluation_summary.json")
     config_used = read_json(eval_dir / "config_used_for_evaluation.json")
     overall_csv = eval_dir / "evaluation_iou_sweep_report_overall.csv"
-    with_filter_csv = eval_dir / "evaluation_iou_sweep_report_with_filter.csv"
-    without_filter_csv = eval_dir / "evaluation_iou_sweep_report_without_filter.csv"
+    if not overall_csv.exists():
+        overall_csv = eval_dir / "evaluation_iou_sweep_report.csv"
     final_stats = parse_final_stats(eval_dir / "evaluation_final_statistics.txt")
-    dual_cmp_json = read_json(eval_dir / "dual_mode_comparison_data.json")
 
     overall_row = parse_iou_row(overall_csv, "overall", iou_key)
-    with_row = parse_iou_row(with_filter_csv, "with", iou_key)
-    without_row = parse_iou_row(without_filter_csv, "without", iou_key)
-
-    with_prf = (dual_cmp_json.get("statistics") or {}).get("with_filter", {}) if isinstance(dual_cmp_json, dict) else {}
-    without_prf = (dual_cmp_json.get("statistics") or {}).get("without_filter", {}) if isinstance(dual_cmp_json, dict) else {}
 
     doc = Document()
     _set_cn_styles(doc)
@@ -292,36 +286,22 @@ def build_basic_report(eval_dir: Path, output_path: Path, iou_key: float = 0.5) 
 
     add_heading(doc, f"IoU={iou_key:.2f} 指标对比", level=1)
     rows = []
-    for row in (overall_row, with_row, without_row):
-        if not row:
-            continue
+    if overall_row:
         rows.append([
-            row.get("Mode", "-"),
-            f"{row.get('IoU', 0):.3f}",
-            row.get("Total GT", "-"),
-            row.get("Total Detections", "-"),
-            f"{row.get('Precision', 0.0):.4f}",
-            f"{row.get('Recall', 0.0):.4f}",
-            f"{row.get('F1 Score', 0.0):.4f}",
+            overall_row.get("Mode", "-"),
+            f"{overall_row.get('IoU', 0):.3f}",
+            overall_row.get("Total GT", "-"),
+            overall_row.get("Total Detections", "-"),
+            f"{overall_row.get('Precision', 0.0):.4f}",
+            f"{overall_row.get('Recall', 0.0):.4f}",
+            f"{overall_row.get('F1 Score', 0.0):.4f}",
         ])
     if rows:
         add_table(doc, ["模式", "IoU", "总真值", "检测数", "Precision", "Recall", "F1"], rows)
 
-    if with_prf or without_prf:
-        add_heading(doc, "双模式宏平均指标", level=2)
-        rows = []
-        if with_prf:
-            rows.append(["with_filter", f"{_safe_float(with_prf.get('precision')):.4f}", f"{_safe_float(with_prf.get('recall')):.4f}", f"{_safe_float(with_prf.get('f1_score')):.4f}"])
-        if without_prf:
-            rows.append(["without_filter", f"{_safe_float(without_prf.get('precision')):.4f}", f"{_safe_float(without_prf.get('recall')):.4f}", f"{_safe_float(without_prf.get('f1_score')):.4f}"])
-        add_table(doc, ["模式", "Precision", "Recall", "F1"], rows)
-
     # 常用图表（如存在）
     add_heading(doc, "可视化图表", level=1)
-    add_picture_if_exists(doc, eval_dir / "dual_mode_analysis" / "visualizations" / "dual_mode_performance_comparison.png", caption="双模式性能对比")
-    add_picture_if_exists(doc, eval_dir / "dual_mode_analysis" / "visualizations" / "dual_mode_scatter_comparison.png", caption="双模式散点对比")
-    add_picture_if_exists(doc, eval_dir / "dual_mode_with_filter" / "overall_performance.png", caption="启用过滤整体性能")
-    add_picture_if_exists(doc, eval_dir / "dual_mode_without_filter" / "overall_performance.png", caption="禁用过滤整体性能")
+    add_picture_if_exists(doc, eval_dir / "visualizations" / "overall_performance.png", caption="整体性能")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_path))
