@@ -18,6 +18,13 @@
 
 ---
 
+## 内部结构
+
+- 检测入口的通用工具与配置逻辑拆分至 `gui/detection_ui/`
+- 工作流引导页逻辑集中在 `gui/workflow_controller.py`
+
+---
+
 ## 依赖与环境
 
 GUI 依赖 PyQt5。若服务器无显示器，建议使用 `laptop_ui.py` 的 CLI 入口完成批处理与评估，并使用 `python environment_setup/validate_installation.py --gui-smoke` 验证 Qt 依赖是否完整。
@@ -90,3 +97,9 @@ python gui/annotation_editor.py --folder /path/to/dataset_root --lang en
 
 - 缺少 PyQt5 依赖时，请按 `environment_setup/` 的安装流程补齐依赖
 - 无显示器环境出现 Qt 插件错误时，建议优先使用 CLI，并以 `--gui-smoke` 自检
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

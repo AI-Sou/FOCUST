@@ -56,6 +56,8 @@ Paths are resolved using a two step strategy:
 1. resolve relative paths against the configuration file directory
 2. then resolve against the repository root
 
+Path resolution and config layering helpers are centralized in `gui/detection_ui/paths.py` and `gui/detection_ui/config.py`, and are reused by `laptop_ui.py`.
+
 YOLO weights support a fallback naming policy to keep offline startup reliable. If a configuration references `*_best.pt` but the file does not exist, the system attempts the same name without `_best`. If it still cannot find the file, it attempts to locate an available YOLO weight under `model/`.
 
 ---
@@ -89,3 +91,9 @@ Visualization chart language is controlled by `visualization_settings.chart_lang
 - `en` and `en_US` force English
 
 Chinese chart rendering uses the built in font `assets/fonts/NotoSansSC-Regular.ttf` via `core/cjk_font.py`.
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

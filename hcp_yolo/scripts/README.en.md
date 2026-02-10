@@ -24,3 +24,9 @@ bash hcp_yolo/scripts/evaluate.sh --model best.pt --dataset ./hcp_dataset --spli
 
 bash hcp_yolo/scripts/full_pipeline.sh --anno-json /path/to/annotations.json --images-dir /path/to/images --dataset-output ./hcp_dataset --model yolo11n.pt
 ```
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

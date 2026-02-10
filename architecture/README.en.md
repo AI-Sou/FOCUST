@@ -53,4 +53,9 @@ The script supports center distance and IoU matching and can export evaluation i
 
 - main entrypoints are `python gui.py` and `python laptop_ui.py`
 - CJK font rendering is handled by `core/cjk_font.py` and uses the bundled font by default
+---
 
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

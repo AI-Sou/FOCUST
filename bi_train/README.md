@@ -92,3 +92,9 @@ python core/binary_inference.py --model model/bi_cat98.pth --input . --info
 - 权重文件不存在：确认 `models.binary_classifier` 指向本地 `.pth`
 - 显存不足或内存不足：减小训练批大小，或在推理侧降低 `micro_batch_size`
 - 序列长度不一致：对齐训练与推理侧的序列长度配置，并用 `--info` 进行自检
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

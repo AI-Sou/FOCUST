@@ -94,3 +94,9 @@ python -c "from PyQt5.QtCore import QT_VERSION_STR; print('PyQt5:', QT_VERSION_S
 - FOCUST 默认离线运行，模型权重需要以本地文件方式提供
 - 无显示器服务器建议使用 `laptop_ui.py` 的 CLI 入口
 - 中文字体由 `assets/fonts/` 提供，默认无需额外安装
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

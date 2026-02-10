@@ -242,6 +242,8 @@ FOCUST/
   detection/            检测与评估核心模块
   environment_setup/    环境安装与自检
   gui/                  GUI 组件与标注工具
+  gui/detection_ui/     检测GUI通用工具与配置拆分
+  gui/workflow_controller.py  工作流页控制器
   hcp_yolo/             HCP 编码与 YOLO 引擎
   model/                离线权重文件目录
   mutil_train/          多分类训练模块
@@ -272,3 +274,9 @@ FOCUST/
 ## 许可说明
 
 本项目采用 MIT License，详见 `LICENSE`。
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

@@ -94,3 +94,9 @@ python -c "from PyQt5.QtCore import QT_VERSION_STR; print('PyQt5:', QT_VERSION_S
 - FOCUST is offline first and expects weights as local files
 - for headless servers, use the CLI entrypoint provided by `laptop_ui.py`
 - CJK fonts are shipped under `assets/fonts/` by default
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

@@ -56,6 +56,8 @@
 1. 相对路径优先相对配置文件所在目录解析
 2. 其次相对仓库根目录解析
 
+路径解析与配置合并逻辑已集中在 `gui/detection_ui/paths.py` 与 `gui/detection_ui/config.py`，`laptop_ui.py` 直接复用这些工具函数。
+
 YOLO 权重路径支持命名回退策略，以便在离线环境中保持可启动性。若配置指向 `*_best.pt` 但文件不存在，系统会尝试回退到去掉 `_best` 的同名权重。如果仍不存在，会尝试在 `model/` 目录中寻找可用的 YOLO 权重。
 
 ---
@@ -89,3 +91,9 @@ YOLO 权重路径支持命名回退策略，以便在离线环境中保持可启
 - `en` 与 `en_US` 强制英文
 
 中文渲染默认使用仓库内置字体 `assets/fonts/NotoSansSC-Regular.ttf`，并由 `core/cjk_font.py` 统一封装。
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

@@ -53,4 +53,9 @@ python architecture/hcp_yolo_eval.py --help
 
 - 主系统入口为 `python gui.py` 与 `python laptop_ui.py`
 - 中文字体由 `core/cjk_font.py` 提供，默认无需依赖系统字体
+---
 
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

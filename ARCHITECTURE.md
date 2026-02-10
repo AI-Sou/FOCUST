@@ -95,6 +95,7 @@ dataset_root/
 ## 4) GUI vs Scripts | GUI 与脚本的关系
 
 - GUI（Windows/Linux 都可用）负责：可视化配置、可视化流程入口、减少误操作（缺模块会自动禁用/提示）。
+- GUI 内部结构：检测入口的通用工具与配置拆分至 `gui/detection_ui/`，工作流引导逻辑集中在 `gui/workflow_controller.py`，入口脚本保持不变。
 - `scripts/`（Linux only）负责：把关键步骤按 `00_*.sh` 串起来，适合服务器批处理与复现实验。
 - 两者共享同一套核心 Python 逻辑与配置字段（`engine` / `models.*` / `inference.*` / `evaluation.*`）。
 

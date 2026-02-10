@@ -92,3 +92,9 @@ Enable the binary filter in your detection config:
 - weight not found: verify `models.binary_classifier` points to a local `.pth`
 - out of memory: reduce training batch size, or reduce inference `micro_batch_size`
 - inconsistent sequence length: align sequence length settings between training and inference, then verify using `--info`
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

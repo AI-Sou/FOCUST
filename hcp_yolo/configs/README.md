@@ -24,3 +24,9 @@
 - `config_a800_optimized.json` 大显存高吞吐训练参数示例
 - `config_adaptive_concurrent.json` 并发与自适应调度参数示例
 - `multi_model_config.json` 多模型训练与对比配置示例
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

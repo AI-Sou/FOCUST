@@ -18,6 +18,13 @@
 
 ---
 
+## Internal structure
+
+- Shared detection utilities/config helpers live under `gui/detection_ui/`
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`
+
+---
+
 ## Requirements
 
 The GUI requires PyQt5. On servers without a display, using the CLI entrypoint provided by `laptop_ui.py` and validating Qt dependencies using `python environment_setup/validate_installation.py --gui-smoke` is recommended.
@@ -90,3 +97,9 @@ CJK rendering is handled by `core/cjk_font.py`. The bundled font file is `assets
 
 - missing PyQt5: follow the setup steps under `environment_setup/`
 - Qt plugin errors on headless servers: prefer the CLI entrypoint and validate using `--gui-smoke`
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

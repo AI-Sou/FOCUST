@@ -98,3 +98,9 @@ The default labels are defined in `server_det.json` under `class_labels`:
 3. E.coli PCA
 4. Salmonella PCA
 5. E.coli VRBA
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

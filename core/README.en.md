@@ -54,3 +54,9 @@ To use a custom font, set:
 ```bash
 export FOCUST_CJK_FONT=/path/to/your_font.ttf
 ```
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

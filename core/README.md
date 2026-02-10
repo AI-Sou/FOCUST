@@ -54,3 +54,9 @@ python core/multiclass_inference.py --model model/multi_cat93.pth --input /path/
 ```bash
 export FOCUST_CJK_FONT=/path/to/your_font.ttf
 ```
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

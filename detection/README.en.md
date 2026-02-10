@@ -28,6 +28,8 @@ Shared policies include:
 - `edge_ignore_settings.enable` for ellipse ROI edge ignoring to reduce edge false positives
 - `small_colony_filter` for small colony handling, such as assigning a dedicated class or skipping refinement
 
+Edge ignore is configurable in the detection GUI, persisted via `edge_ignore_settings`, and applied in evaluation and visualization outputs.
+
 ---
 
 ## Entry point
@@ -79,3 +81,9 @@ Visualization prefers the built in font to avoid missing glyphs:
 - font file at `assets/fonts/NotoSansSC-Regular.ttf`
 - Matplotlib registration via `core/cjk_font.py`
 - OpenCV CJK rendering via `core/cjk_font.cv2_put_text`
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

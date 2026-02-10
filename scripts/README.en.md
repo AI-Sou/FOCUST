@@ -79,3 +79,9 @@ Use the usage text at the top of each script as the source of truth for flags an
 - scripts automatically change the working directory to the repository root
 - `python3` is used by default, override via the `PYTHON` environment variable
 - offline first behavior is assumed and weights are read from `model/` by default
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

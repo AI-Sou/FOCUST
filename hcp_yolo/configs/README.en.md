@@ -20,3 +20,9 @@ The `python -m hcp_yolo` CLI supports most parameters directly via command line.
 - `config_a800_optimized.json` high memory throughput example
 - `config_adaptive_concurrent.json` adaptive and concurrent scheduling example
 - `multi_model_config.json` multi model training and comparison example
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

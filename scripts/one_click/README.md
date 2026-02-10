@@ -66,3 +66,9 @@ bash scripts/one_click/03_hcp_yolo_full_pipeline.sh \
   --images-dir /path/to/seqanno/images \
   --workdir /path/to/workdir
 ```
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

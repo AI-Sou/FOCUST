@@ -9,3 +9,9 @@ This directory contains runnable example scripts that demonstrate typical usage 
 Current example:
 
 - `hcp_yolo/examples/example_sliced_training.py` sliced training workflow example
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

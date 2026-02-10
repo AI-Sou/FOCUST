@@ -79,4 +79,9 @@ chmod +x scripts/one_click/*.sh
 - 脚本会自动切换到仓库根目录作为工作目录
 - 默认使用 `python3`，可通过环境变量 `PYTHON` 指定解释器路径
 - 系统默认离线运行，脚本默认从 `model/` 目录读取本地权重
+---
 
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

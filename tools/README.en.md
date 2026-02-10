@@ -102,3 +102,9 @@ bash tools/run_multi_yolo_eval.sh server_det.json
 
 - scripts do not download external resources by default
 - run from the repository root, or ensure the repository root is on `PYTHONPATH`
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

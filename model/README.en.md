@@ -67,3 +67,9 @@ python core/binary_inference.py --model model/bi_cat98.pth --input . --info
 python core/multiclass_inference.py --model model/multi_cat93.pth --input . --info
 python -m hcp_yolo --help
 ```
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

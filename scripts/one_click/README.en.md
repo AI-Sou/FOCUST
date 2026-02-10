@@ -66,3 +66,9 @@ bash scripts/one_click/03_hcp_yolo_full_pipeline.sh \
   --images-dir /path/to/seqanno/images \
   --workdir /path/to/workdir
 ```
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

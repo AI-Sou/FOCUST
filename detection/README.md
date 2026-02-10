@@ -28,6 +28,8 @@ FOCUST 支持两条引擎：
 - `edge_ignore_settings.enable` 控制椭圆 ROI 边缘忽略策略，用于降低边缘伪检
 - `small_colony_filter` 控制小菌落处理策略，可将其标记为特定类别或跳过后续细化
 
+边缘忽略选项在检测 GUI 中可视化配置，保存回 `edge_ignore_settings` 并在评估与可视化流程中生效。
+
 ---
 
 ## 统一入口
@@ -79,3 +81,9 @@ FOCUST 支持两类匹配口径：
 - 字体文件为 `assets/fonts/NotoSansSC-Regular.ttf`
 - Matplotlib 通过 `core/cjk_font.py` 自动注册字体
 - OpenCV 可通过 `core/cjk_font.cv2_put_text` 进行中文渲染
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

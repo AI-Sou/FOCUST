@@ -242,6 +242,8 @@ FOCUST/
   detection/            detection and evaluation core
   environment_setup/    environment setup and validation
   gui/                  GUI components and annotation tools
+  gui/detection_ui/     Detection GUI shared utilities and config helpers
+  gui/workflow_controller.py  Workflow tab controller
   hcp_yolo/             HCP encoding and YOLO engine
   model/                offline model weights
   mutil_train/          multi class training module
@@ -272,3 +274,9 @@ For technical support, you can reach me via the contact email found in the commi
 ## License
 
 This project is licensed under the MIT License. See `LICENSE`.
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

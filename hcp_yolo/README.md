@@ -102,3 +102,9 @@ export YOLO_OFFLINE=true
 ## 中文字体
 
 图像与图表的中文渲染由 `core/cjk_font.py` 统一处理，默认字体文件位于 `assets/fonts/NotoSansSC-Regular.ttf`。
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。

@@ -102,3 +102,9 @@ Place `.pt` weights under `model/` or provide absolute paths in configuration. F
 ## CJK fonts
 
 CJK rendering for images and charts is handled by `core/cjk_font.py` using the bundled font file at `assets/fonts/NotoSansSC-Regular.ttf`.
+---
+
+## Architecture update note
+
+- Detection UI helpers/config utilities are grouped under `gui/detection_ui/`; entrypoints and behavior stay the same.
+- Workflow stepper logic is centralized in `gui/workflow_controller.py`, while `gui.py` remains the unified entrypoint.

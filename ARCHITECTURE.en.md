@@ -95,6 +95,7 @@ This dataset structure is used by:
 ## 4) GUI vs Scripts
 
 - **GUI** (Windows/Linux): provides visual configuration + safe workflow entrypoints; reduces mis-operations (missing modules/weights are disabled with warnings).
+- GUI internals: detection entry helpers are grouped under `gui/detection_ui/`, and the workflow stepper logic lives in `gui/workflow_controller.py` while entry scripts remain unchanged.
 - **`scripts/`** (Linux only): chains the key steps as ordered `00_*.sh` scripts; best for server batch jobs and reproducible experiment runs.
 - Both share the same core Python logic and configuration schema (`engine`, `models.*`, `inference.*`, `evaluation.*`).
 
@@ -110,4 +111,3 @@ To handle this, `EnhancedClassificationManager` implements:
 - Aggregated crop/load failure statistics: emits actionable hints in logs
 
 These strategies apply to both GUI and CLI (same config and the same implementation).
-

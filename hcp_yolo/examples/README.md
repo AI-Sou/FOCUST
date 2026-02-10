@@ -9,3 +9,9 @@
 当前示例：
 
 - `hcp_yolo/examples/example_sliced_training.py` 切片训练流程示例
+---
+
+## 架构更新说明
+
+- 检测入口的通用工具与配置逻辑已拆分至 `gui/detection_ui/`，入口与行为保持不变。
+- 工作流引导逻辑集中在 `gui/workflow_controller.py`，`gui.py` 仍作为统一入口。
